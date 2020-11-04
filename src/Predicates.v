@@ -41,23 +41,19 @@ Reset unit.
 *)
 
 (**
-いわゆる「Curry-Howard同型対応」というものがあり，それは，関数型プログラムと数学的証明の形式的な対応のことです．
-前の章では，このテーマの最初の導入を行いました．
-標準ライブラリの[unit]と[True]について非常に類似していることを見てみましょう．
-*)
-
+関数プログラミングと数学の証明の間にはCurry-Howard同型と呼ばれる形式的な対応があります。
+実を言うとCoqにおけるCurry-Howard対応は前章ですでに初登場しています。
+標準ライブラリの[unit]と[True]がとてもよく似ていることに注目してください。
+<<
 Print unit.
-(** %\vspace{-.15in}%[[
   Inductive unit : Set :=  tt : unit
-]]
-*)
 
 Print True.
-(**
-(** %\vspace{-.15in}%[[
   Inductive True : Prop :=  I : True
-  ]]
+>>
+*)
 
+(*
 Recall that [unit] is the type with only one value, and [True] is the proposition that always holds.  Despite this superficial difference between the two concepts, in both cases we can use the same inductive definition mechanism.  The connection goes further than this.  We see that we arrive at the definition of [True] by replacing [unit] by [True], [tt] by [I], and [Set] by [Prop].  The first two of these differences are superficial changes of names, while the third difference is the crucial one for separating programs from proofs.  A term [T] of type [Set] is a type of programs, and a term of type [T] is a program.  A term [T] of type [Prop] is a logical proposition, and its proofs are of type [T].  Chapter 12 goes into more detail about the theoretical differences between [Prop] and [Set].  For now, we will simply follow common intuitions about what a proof is.
 
 The type [unit] has one value, [tt].  The type [True] has one proof, [I].  Why distinguish between these two types?  Many people who have read about Curry-Howard in an abstract context but who have not put it to use in proof engineering answer that the two types in fact _should not_ be distinguished.  There is a certain aesthetic appeal to this point of view, but I want to argue that it is best to treat Curry-Howard very loosely in practical proving.  There are Coq-specific reasons for preferring the distinction, involving efficient compilation and avoidance of paradoxes in the presence of classical math, but I will argue that there is a more general principle that should lead us to avoid conflating programming and proving.
@@ -67,40 +63,34 @@ The essence of the argument is roughly this: to an engineer, not all functions o
 With that perspective in mind, this chapter is sort of a mirror image of the last chapter, introducing how to define predicates with inductive definitions.  We will point out similarities in places, but much of the effective Coq user's bag of tricks is disjoint for predicates versus "datatypes."  This chapter is also a covert introduction to dependent types, which are the foundation on which interesting inductive predicates are built, though we will rely on tactics to build dependently typed proof terms for us for now.  A future chapter introduces more manual application of dependent types. *)
 *)
 
-(** %\vspace{-.15in}%[[
-  Inductive True : Prop :=  I : True
-  ]]
+(**
+[unit]は「ただ1つの値を持つ型」であり、[True]は「常に成り立つ命題」でした。
+この2つの概念は、表面的には違いがありますが、いずれも同じ機構で帰納的に定義できています。
+さらに[unit]と[True]の間には似ている面があります。
+[unit]の定義中の[unit]を[True]に置き換え、[tt]を[I]に置き換え、[Set]を[Prop]に置き換えると、[True]の定義になることがわかります。
+最初の2つの置き換えは名前の変更なのでさほど重要ではありません。それに対し3つめの置き換えは、プログラムと証明を分ける決定的な違いです。
+[Set]型の[T]という項は、プログラムの集合を表す型であり、[T]型の項はプログラムです。
+[Prop]型の[T]という項は、論理的な命題であり、その証明は[T]型を持ちます。
+[Prop]と[Set]の理論的な違いは第12章でもっと詳細に説明しますが、今のところ「証明とは何か」については一般的な直観による理解に基づいて説明を続けます。
 
-[unit]はただ1つの値をとる型で，[True]は常に成り立つ命題であったことを思い出してください．
-この2つの概念には表面的な違いがありますが，両者ともにInductiveを使った定義になっている点は同じです．
-[unit]と[True]の類似点はまだあります．
-[unit]を[True]に，[tt]を[I]に，[Set]を[Prop]に置き換えると[True]の定義になるということがわかります．
-最初の2つの違いは名前の変更なので重要ではありませんが，3つ目の違いは重要なもので，プログラムと証明をわけるものです．
-[Set]型の[T]という項があればそれはプログラムの集合を表す型で，[T]型を持つ項はプログラムです．
-[Prop]型の[T]という項があればそれは論理的な命題で，その証明は[T]型を持ちます．
-12章ではもっと詳細に[Prop]と[Set]の理論的な違いを説明します．
-今の所は，証明が何かということについて，一般的な感覚に基づいておくことにします．
+[unit]型は1つの値を持ち、それは[tt]です。
+[True]型は1つの証明を持ち、それは[I]です。
+これらの型を区別する理由はあるでしょうか？
+多くの人は、カリーハワード対応を抽象的な説明として知っていて証明工学で使ったことがないうちは、これら2つの型を実際には区別する＿べきではない＿と考えます。
+この見方には、ある種の審美的な魅力があります。しかし筆者の考えでは、実用的な証明においてはカリーハワード対応をゆるく活用して両者を区別するのが一番です。
+両者を区別することには、Coq特有の理由、すなわち効率的なコンパイルと古典的な数学（論理学）におけるパラドクスを避けるためという理由もあります。
+しかし、プログラミングと証明を混然一体にして扱うのを避けることは、むしろより一般的な原則から導かれる結論でもあるのです。
 
-[unit]という型は[tt]という1つの値を取ります．
-[True]という型には[I]という1つの証明があります．
-なぜこれらの型を区別するのでしょうか？
-抽象的な文脈でカリーハワードのことを読んだことがあっても証明工学で使ったことのない人は，実はこれら2つの型は区別する＿べきではない＿と答えるでしょう．
-確かにこの見方には美しさを訴えかけてくるものがあります．しかし，実用的な証明においてカリーハワードはとてもゆるく扱われるべきだということを私は言いたいのです．
-このような区別をした方が良いCoq特有の理由があります．
-コンパイルを効率的に行うことと古典主義の数学（論理学）に存在するパラドクスを避けるためというのもありますが，私はむしろ，証明とプログラミングを一緒にしなくなるようなより一般的な法則を主張します．
+その原則とは何でしょうか。ごく大雑把に要約すると、「[A -> B]型の関数をすべて同じようにはプログラミングできないが、[P -> Q]という命題の証明はすべて同じようにできる」ということです。
+この発想は＿proof irrelevance＿として知られています。これを論理学で形式化すれば、同一の命題に対する異なる証明は互いに区別できない、ということが言えます。
+このproof irrelevanceは、Gallina上で成立しますが、導出はできません。
+本章では、この理論上の課題はいったんわきに置いておいて、proof irrelevanceがCoqにおける開発でとても効果的であり、そのおかげでプログラムと証明に対して別々の技法を使えることを見ていきます。
+本書の大部分でも、プログラムを書く際には依存型のある関数プログラミングにおける標準的な技法を利用し、証明においてはLtacの決定手続きを独自に定義することで、両者の区別を利用しています。
 
-議論の重要なところはだいたいこのようなものです：[A -> B]の全ての関数が同じではありませんが，[P -> Q]という命題の全ての証明は等しいのです．
-この考えは＿proof irrelevance＿として知られています．そしてそれを論理学において形式化すると同じ命題の異なる証明を区別するのが難しくなります．
-Proof irrelevanceはGallinaでは互換性はあるけど推論はできません（？）．
-このような理論的な懸念とは別に，私はCoqで開発をするのがもっとも効果的だと考えています．プログラムと証明に別々のテクニックを使えるからです．
-この本のほとんどの部分はこの区別のもとに書かれています．
-プログラムの際は依存型の存在を前提とした標準的な関数型プログタミングのテクニックを使います．
-そして証明の際はカスタムのLtac決定手続きを書きます．
-
-上記の見方に注意すると，この章は前章の鏡像のようなものです．帰納的な定義を使って命題を定義する方法を紹介します．
-所々で類似性を指摘するでしょうが，効果的なCoqユーザーの知恵袋は命題とデータ型で交わりません．
-依存型をもつ証明項を構築するタクティク使っていく一方で，この章はまた依存型のひそかな紹介でもあります．依存型は興味深い帰納的命題を作る土台になっています．
-さらに先の章ではより手動による依存型の応用も扱って行きます．
+上記のような観点に立てば、本章は前章の鏡像のようなものです。すなわち、本章では帰納的な定義を使って命題を定義する方法を紹介します。
+命題は、随所で「データ型」との類似を指摘しているものの、その類似性がCoqを効果的に使うための道具になることはあまりありません。
+さらに本章では依存型もこっそり導入します。依存型は面白い帰納的命題を作る土台です。
+ただし依存型を使った証明項の構築では今のところタクティクを使い、手作業で依存型を活用する例は後の章で扱うことにします。
 *)
 
 (**
