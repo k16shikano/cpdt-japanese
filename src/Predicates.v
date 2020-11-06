@@ -111,7 +111,7 @@ Section Propositional.
 We have also already seen the definition of [True].  For a demonstration of a lower-level way of establishing proofs of inductive predicates, we turn to this trivial theorem. *)
 
 Coqにおけるもっとも基本的な命題の結合記号は含意であり、[->]で表します。この記号は、これまでのほぼすべての証明でも使ってきました。
-含意は帰納的に定義されているわけではなく、関数型のコンストラクタとしてCoqに組み込まれています。
+含意は帰納的に定義されているわけではなく、関数型の構成子としてCoqに組み込まれています。
 
 帰納的な述語に対する証明を低レベルな方法で構成する例として、すでに定義を知っている[True]を使った次の自明な定理を見てみましょう。
 *)
@@ -125,8 +125,8 @@ Coqにおけるもっとも基本的な命題の結合記号は含意であり�
 (**
 (* We may always use the [apply] tactic to take a proof step based on applying a particular constructor of the inductive predicate that we are trying to establish.  Sometimes there is only one constructor that could possibly apply, in which case a shortcut is available:%\index{tactics!constructor}% *)
 
-証明のステップを進めるのに、証明を構成しようとしている帰納的な述語が持つ特定のコンストラクタを適用する場合には、常に[apply]タクティクが使えます。
-特に適用しうるコンストラクタがただ1つしかない場合には、以下のように[constructor]というショートカット%\index{tactics!constructor}%が使えます。
+証明のステップを進めるのに、証明を構成しようとしている帰納的な述語が持つ特定の構成子を適用する場合には、常に[apply]タクティクが使えます。
+特に適用しうる構成子がただ1つしかない場合には、以下のように[constructor]というショートカット%\index{tactics!constructor}%が使えます。
 *)
 
 (* begin thide *)
@@ -181,15 +181,15 @@ Print False.
     elimtype False.
 
 
-(**
-<<
+(** <<
   H : 2 + 2 = 5
   ============================
    False
 >>
 
 (* For now, we will leave the details of this proof about arithmetic to [crush]. *)
-残りの算術に関する証明の詳細は[crush]しておきましょう。 *)
+残りの算術に関する証明の詳細は[crush]しておきましょう。
+*)
 
     crush.
 (* end thide *)
@@ -204,18 +204,18 @@ Print False.
   Definition foo := not.
   (* end hide *)
 
-<<
+(** <<
 Print not.
   not = fun A : Prop => A -> False
       : Prop -> Prop
 >>
 
-(**
 (* We see that [not] is just shorthand for implication of [False].  We can use that fact explicitly in proofs.  The syntax [~ P] %(written with a tilde in ASCII)% expands to [not P].  *)
 
 [not]は、上記からわかるように、「[False]への含意」の省略形にすぎません。
 この事実を証明中で明示的に使うこともできます。
 %(チルダ)%[~ P]という記法は[not P]に展開されます。
+*)
 
   Theorem arith_neq' : ~ (2 + 2 = 5).
 (* begin thide *)
@@ -224,12 +224,11 @@ Print not.
 (* end thide *)
   Qed.
 
-<<
+(** <<
   ============================
    2 + 2 = 5 -> False
 >>
 
-(**
 (* We also have conjunction, which we introduced in the last chapter. *)
 
 前章に出てきた連言もあります。
@@ -257,14 +256,13 @@ Print not.
 
     destruct 1.
 
-<<
+(** <<
   H : P
   H0 : Q
   ============================
    Q /\ P
 >>
 
-(**
 (* Every proof of a conjunction provides proofs for both conjuncts, so we get a single subgoal reflecting that.  We can proceed by splitting this subgoal into a case for each conjunct of [Q /\ P].%\index{tactics!split}% *)
 
 連言の証明では、常に両方の連言肢の証明をすることになります。上記で得られた唯一のサブゴール[Q /\ P]は、そのことを反映しています。
@@ -273,7 +271,7 @@ Print not.
 
     split.
 
-<<
+(** <<
 2 subgoals
   
   H : P
@@ -286,7 +284,6 @@ subgoal 2 is
    P
 >>
 
-(**
 (* In each case, the conclusion is among our hypotheses, so the %\index{tactics!assumption}%[assumption] tactic finishes the process. *)
 どちらの場合分けでも、結論が仮定に含まれているので、%\index{tactics!assumption}%[assumption]タクティクで証明を完了します。
 *)
@@ -299,13 +296,12 @@ subgoal 2 is
 (**
 (* Coq disjunction is called %\index{Gallina terms!or}%[or] and abbreviated with the infix operator [\/]. *)
 選言は、Coqでは%\index{Gallina terms!or}%[or]を使います。略記として中置演算子[\/]が使えます。
-*)
-
 <<
 Print or.
   Inductive or (A : Prop) (B : Prop) : Prop :=
     or_introl : A -> A \/ B | or_intror : B -> A \/ B
 >>
+*)
 
 (**
 (* We see that there are two ways to prove a disjunction: prove the first disjunct or prove the second.  The Curry-Howard analogue of this is the Coq %\index{Gallina terms!sum}%[sum] type.  We can demonstrate the main tactics here with another proof of commutativity. *)
@@ -326,7 +322,7 @@ Print or.
 
     destruct 1.
 
-<<
+(** <<
 2 subgoals
   
   H : P
@@ -350,8 +346,6 @@ subgoal 2 is
 (* The second subgoal has a symmetric proof.%\index{tactics!left}% *)
 
 次のサブゴールの証明には、対称的な%\index{tactics!left}%[left]を使います。
-*)
-
 <<
 1 subgoal
   
@@ -359,6 +353,7 @@ subgoal 2 is
   ============================
    Q \/ P
 >>
+*)
 
     left; assumption.
 
@@ -448,8 +443,6 @@ Coqには、%\index{tactics!intuition}%[intuition]という、汎用の[tauto]�
 
 最終的な証明はリストに関する事実に依存しますが、証明の構造の大部分は[intuition]が生成してくれます。
 その上で残されているサブゴールを見れば、人間が知恵をしぼって手を入れる必要があるもの何であるかヒントが見えてきます。
-*)
-
 <<
   ls1 : list nat
   ls2 : list nat
@@ -461,10 +454,11 @@ Coqには、%\index{tactics!intuition}%[intuition]という、汎用の[tauto]�
 (**
 (* We can see that we need a theorem about lengths of concatenated lists, which we proved last chapter and is also in the standard library. *)
 このサブゴールを見ると、必要なのは連結したリストの長さに関する定理であることがわかります。前章でも証明した定理ですが、標準ライブラリにも[app_length]として含まれています。
+*)
 
     rewrite app_length.
 
-<<
+(** <<
   ls1 : list nat
   ls2 : list nat
   H0 : length ls1 + length ls2 = 6
@@ -567,14 +561,13 @@ Coqによる定理証明を使ってプログラムを書くことは可能で�
 %\index{existential quantification}\index{Gallina terms!exists}\index{Gallina terms!ex}%Existential quantification is defined in the standard library. *)
 
 これまでの例にも登場しているように、Coqには一階の論理における%\index{Gallina terms!forall}%[forall]限定子が組み込まれています。
-[forall]結合子は、少し先取りして言うと、依存関数型のコンストラクタとみなせます。
+[forall]結合子は、少し先取りして言うと、依存関数型の構成子とみなせます。
 実際、含意と全称限量化は、Coqでは同一の機構に対する別々の記法にすぎません。
 [P -> Q]という式は[forall x : P, Q]と等価なのです（ただし[x]は[Q]には現れないものとします）。
 言い換えると、含意には「[P]のすべての証明に対し、[Q]の証明が存在する」という意味合いになります。
 
 %\index{existential quantification}\index{Gallina terms!exists}\index{Gallina terms!ex}%
 存在限量化は標準ライブラリで次のように定義されています。
-
 <<
   Print ex.
   Inductive ex (A : Type) (P : A -> Prop) : Prop :=
@@ -606,8 +599,8 @@ Theorem exist1 : exists x : nat, x + 1 = 2.
 (**
 (* We can start this proof with a tactic %\index{tactics!exists}%[exists], which should not be confused with the formula constructor shorthand of the same name.  %In the version of this document that you are reading, the reverse ``E'' appears instead of the text ``exists'' in formulas.% *)
 
-上記の式に出てくる「逆向きのE」は存在限量子のコンストラクタであり、Coqにおける入力では「exists」というASCIIの文字列です。
-この定理は、次のように%\index{tactics!exists}%[exists]タクティク（コンストラクタと同名ですが混同しないように注意してください）を使って証明を開始できます。
+上記の式に出てくる「逆向きのE」は存在限量子の構成子であり、Coqにおける入力では「exists」というASCIIの文字列です。
+この定理は、次のように%\index{tactics!exists}%[exists]タクティク（構成子と同名ですが混同しないように注意してください）を使って証明を開始できます。
 *)
 
   exists 1.
@@ -630,20 +623,20 @@ Qed.
 
 (**
 (* We can also use tactics to reason about existential hypotheses. *)
-
 存在限量化を仮定に含む推論でもタクティクが使えます。
+*)
 
 Theorem exist2 : forall n m : nat, (exists x : nat, n + x = m) -> n <= m.
 
+(**
 (* begin thide *)
   (* We start by case analysis on the proof of the existential fact. *)
-
-存在についての事実を場合分けで証明しましょう。
+  存在についての事実を場合分けで証明しましょう。
 *)
 
   destruct 1.
   
-<<
+(** <<
   n : nat
   m : nat
   x : nat
@@ -652,7 +645,6 @@ Theorem exist2 : forall n m : nat, (exists x : nat, n + x = m) -> n <= m.
    n <= m
 >>
 
-(**
 (*   The goal has been replaced by a form where there is a new free variable [x], and where we have a new hypothesis that the body of the existential holds with [x] substituted for the old bound variable.  From here, the proof is just about arithmetic and is easy to automate. *)
 
 ゴールが置き換えられて、新たな自由変数[x]と、「その新しい自由変数[x]で元の束縛変数[x]を置き換えた式」を新たな仮定とするフォームが得られました。
@@ -691,9 +683,16 @@ Admitted.
 そのため、使いものにならないと判明するまで長い時間を無駄にすることもよくあります。
 *)
 
-(** * Predicates with Implicit Equality *)
+(**
+(* * Predicates with Implicit Equality *)
+* 暗黙の等価性を持つ命題
 
-(** We start our exploration of a more complicated class of predicates with a simple example: an alternative way of characterizing when a natural number is zero. *)
+(* We start our exploration of a more complicated class of predicates with a simple example: an alternative way of characterizing when a natural number is zero. *)
+
+もう少し複雑なクラスの命題も見ていきましょう。
+最初の簡単な例は、ある自然数がゼロであることを言う別の方法です。
+
+*)
 
 Inductive isZero : nat -> Prop :=
 | IsZero : isZero 0.
@@ -704,87 +703,164 @@ Theorem isZero_zero : isZero 0.
 (* end thide *)
 Qed.
 
-(** We can call [isZero] a%\index{judgment}% _judgment_, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of%\index{natural deduction}% _natural deduction_, where we write a number of%\index{inference rules}% _inference rules_ with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.  (Readers not familiar with formal semantics should not worry about not following this paragraph!)
+(**
+(* We can call [isZero] a%\index{judgment}% _judgment_, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of%\index{natural deduction}% _natural deduction_, where we write a number of%\index{inference rules}% _inference rules_ with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.  (Readers not familiar with formal semantics should not worry about not following this paragraph!) *)
 
-The definition of [isZero] differs in an important way from all of the other inductive definitions that we have seen in this and the previous chapter.  Instead of writing just [Set] or [Prop] after the colon, here we write [nat -> Prop].  We saw examples of parameterized types like [list], but there the parameters appeared with names _before_ the colon.  Every constructor of a parameterized inductive type must have a range type that uses the same parameter, whereas the form we use here enables us to choose different arguments to the type for different constructors.
+プログラミング言語の意味論では_判断_（%\index{judgment}%_judgment_）という概念がよく出てきます。
+上記の[isZero]は、この意味での「判断」だと言えます。
+判断は、%\index{自然演繹}% _自然演繹_と同じスタイルで、「上に前提、下に結論を配した横線を伴う、複数の%\index{導出規則}% _導出規則_（inference rule）」として示されるのが一般的です。
+上記の例では、[isZero]の構成子は[IsZero]だけであり、これが[isZero]の唯一の導出規則とみなせます。
+この場合、横線の上には何も配置されず、下には[isZero 0]だけが配置されます。
+[isZero_zero]の証明を見れば、導出規則の適用方法がわかるでしょう。
+（形式的意味論に不慣れな読者は、この段落の説明は読み飛ばしてもかまいません。）
 
-For instance, our definition [isZero] makes the predicate provable only when the argument is [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in %\index{Prolog}%Prolog (but worry not if not familiar with Prolog), and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type!%\index{Gallina terms!eq}\index{Gallina terms!refl\_equal}% *)
+(* The definition of [isZero] differs in an important way from all of the other inductive definitions that we have seen in this and the previous chapter.  Instead of writing just [Set] or [Prop] after the colon, here we write [nat -> Prop].  We saw examples of parameterized types like [list], but there the parameters appeared with names _before_ the colon.  Every constructor of a parameterized inductive type must have a range type that uses the same parameter, whereas the form we use here enables us to choose different arguments to the type for different constructors. *)
 
+[isZero]の定義は、ある重要な点で、前章と本章でこれまでに見た帰納的定義とは異なります。
+コロンの直後に、[Set]や[Prop]ではなく、[nat -> Prop]と書いている点です。
+パラメータ付きの型は、これまでにも[list]などで登場していますが、そこではパラメータが名前と一緒にコロンの_前_に置かれていました。
+パラメータ付きの帰納型の各構成子には、それぞれ範囲のある型を持たせる必要があり、それらは同じパラメータを使うのですが、上記の例では個々の構成子に対し別々の変数を型として指定するような書き方をしています。
+
+(* For instance, our definition [isZero] makes the predicate provable only when the argument is [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in %\index{Prolog}%Prolog (but worry not if not familiar with Prolog), and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type!%\index{Gallina terms!eq}\index{Gallina terms!refl\_equal}% *)
+
+上記の[isZero]の定義により命題を証明できるのは、引数が[0]の場合だけです。
+このことからは、帰納的な定義の背後に等価性の概念が暗黙にあることがわかります。
+%\index{Prolog}%Prologを知っている人には、論理変数のユニフィケーションに似た仕組みだと言えば伝わると思います。
+この仕組みは、あらゆる数学を定式化するための基盤を作る上で、実に強力です。
+帰納型は、等価性を織り込んだ機能としてとらえるのが自然だと言えるでしょう。
+ただし、実を言うとCoqでは話が逆で、等価性が帰納型のひとつとして次のように定義されています%\index{Gallina terms!eq}\index{Gallina terms!refl\_equal}%。
+<<<
 Print eq.
-(** %\vspace{-.15in}%[[
   Inductive eq (A : Type) (x : A) : A -> Prop :=  eq_refl : x = x
-  ]]
+>>>
 
-  Behind the scenes, uses of infix [=] are expanded to instances of [eq].  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  The type of [eq] allows us to state any equalities, even those that are provably false.  However, examining the type of equality's sole constructor [eq_refl], we see that we can only _prove_ equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.  Another way of stating that definition is: equality is defined as the least reflexive relation.
+(*  Behind the scenes, uses of infix [=] are expanded to instances of [eq].  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  The type of [eq] allows us to state any equalities, even those that are provably false.  However, examining the type of equality's sole constructor [eq_refl], we see that we can only _prove_ equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.  Another way of stating that definition is: equality is defined as the least reflexive relation.*)
 
-Returning to the example of [isZero], we can see how to work with hypotheses that use this predicate. *)
+中置記法[=]は、裏では[eq]のインスタンスへと展開されます。
+[eq]は、[x]という固定のパラメータと、同じ型で無名の追加の引数を取るものと理解でき、その型のおかげであらゆる等価性（偽になりうるものを含め）を表現できるようになっています。
+ただし、等価性の型の[eq_refl]という唯一の構成子をよく見るとわかりますが、等価であることを_証明_できるのは[eeq]の2つの引数が記法の上で同一である場合だけです。
+この定義は等価性の基本的な性質をすべて捉えたものになっています。
+実際、ここまでに登場した[reflexivity]や[rewrite]のような等価性を扱うタクティクの実装では、[eq]を単なる「うまく定義が選ばれた帰納型」として扱っています。
+上記の[eq]の定義は、「等価性は最小の反射的な関係として定義されている」と言い表してもいいでしょう。
+
+(* Returning to the example of [isZero], we can see how to work with hypotheses that use this predicate. *)
+
+話を[isZero]の例に戻します。この命題が仮定に使われている定理を証明してみましょう。
+*)
 
 Theorem isZero_plus : forall n m : nat, isZero m -> n + m = n.
 (* begin thide *)
-  (** We want to proceed by cases on the proof of the assumption about [isZero]. *)
+  (** 
+    (* We want to proceed by cases on the proof of the assumption about [isZero]. *)
+    [isZero]が出てくる仮定について、場合分けをします。 *)
 
   destruct 1.
-  (** [[
+(** <<
   n : nat
   ============================
    n + 0 = n
- 
-   ]]
+>>
 
-   Since [isZero] has only one constructor, we are presented with only one subgoal.  The argument [m] to [isZero] is replaced with that type's argument from the single constructor [IsZero].  From this point, the proof is trivial. *)
+(*   Since [isZero] has only one constructor, we are presented with only one subgoal.  The argument [m] to [isZero] is replaced with that type's argument from the single constructor [IsZero].  From this point, the proof is trivial. *)
+
+[isZero]の構成子は一つだけなので、サブゴールも一つだけです。
+[isZero]の引数である[m]が、その型の唯一の構成子[IsZero]の引数で置き換えられています。
+ここまでくれば証明は自明です。
+*)
 
   crush.
 (* end thide *)
 Qed.
 
-(** Another example seems at first like it should admit an analogous proof, but in fact provides a demonstration of one of the most basic gotchas of Coq proving. *)
+(**
+(* Another example seems at first like it should admit an analogous proof, but in fact provides a demonstration of one of the most basic gotchas of Coq proving. *)
+
+次は、先の例と大差ないものに見えるかもしれませんが、実はCoqにおける証明でもっとも基本的な勘所のひとつを示す例です。
+*)
 
 Theorem isZero_contra : isZero 1 -> False.
 (* begin thide *)
-  (** Let us try a proof by cases on the assumption, as in the last proof. *)
-
+  (**
+   (* Let us try a proof by cases on the assumption, as in the last proof. *)
+   前と同じように仮定に関する場合分けで証明してみましょう。 *)
+  
   destruct 1.
-  (** [[
+
+(** <<
   ============================
    False
- 
-   ]]
+>>
 
-   It seems that case analysis has not helped us much at all!  Our sole hypothesis disappears, leaving us, if anything, worse off than we were before.  What went wrong?  We have met an important restriction in tactics like [destruct] and [induction] when applied to types with arguments.  If the arguments are not already free variables, they will be replaced by new free variables internally before doing the case analysis or induction.  Since the argument [1] to [isZero] is replaced by a fresh variable, we lose the crucial fact that it is not equal to [0].
+(*   It seems that case analysis has not helped us much at all!  Our sole hypothesis disappears, leaving us, if anything, worse off than we were before.  What went wrong?  We have met an important restriction in tactics like [destruct] and [induction] when applied to types with arguments.  If the arguments are not already free variables, they will be replaced by new free variables internally before doing the case analysis or induction.  Since the argument [1] to [isZero] is replaced by a fresh variable, we lose the crucial fact that it is not equal to [0]. *)
 
-     Why does Coq use this restriction?  We will discuss the issue in detail in a future chapter, when we see the dependently typed programming techniques that would allow us to write this proof term manually.  For now, we just say that the algorithmic problem of "logically complete case analysis" is undecidable when phrased in Coq's logic.  A few tactics and design patterns that we will present in this chapter suffice in almost all cases.  For the current example, what we want is a tactic called %\index{tactics!inversion}%[inversion], which corresponds to the concept of inversion that is frequently used with natural deduction proof systems.  (Again, worry not if the semantics-oriented terminology from this last sentence is unfamiliar.) *)
+どうやら場合分けではうまくいかないようです。
+たった一つしかない仮定が消えてしまい、最初の時点よりゴールから遠ざかってしまいました。
+何がまずかったのでしょうか。
+[destruct]や[induction]のようなタクティクには、引数を持つ型に適用する場合には重要な制限があり、それに抵触したのです。
+引数は、すでに自由変数になっているのでなければ、[destruct]や[induction]が実行される前に内部で新しい自由変数に置き換えられます。
+[isZero]に対する引数[1]が新しい自由変数に置き換えられた結果、これが[0]ではないという決定的な事実が失われてしまったのです。
+
+(*   Why does Coq use this restriction?  We will discuss the issue in detail in a future chapter, when we see the dependently typed programming techniques that would allow us to write this proof term manually.  For now, we just say that the algorithmic problem of "logically complete case analysis" is undecidable when phrased in Coq's logic.  A few tactics and design patterns that we will present in this chapter suffice in almost all cases.  For the current example, what we want is a tactic called %\index{tactics!inversion}%[inversion], which corresponds to the concept of inversion that is frequently used with natural deduction proof systems.  (Again, worry not if the semantics-oriented terminology from this last sentence is unfamiliar.) *)
+
+なぜCoqにはこのような制限があるのでしょうか。
+詳しいことは、依存型のプログラミングの技法を使って証明項を手作業で書くことを説明する章で議論します。
+今のところは、「論理的に完全な場合分け」にはアルゴリズム上の問題があってCoqの論理では決定不能である、とだけ言っておきます。
+ほとんどの場合、本章に登場するいくつかのタクティクとデザインパターンで困ることはありません。
+この例で必要なのは、%\index{tactics!inversion}%[inversion]というタクティクです。
+このタクティクは、自然演繹の証明システムでよく使われる「逆転」（inversion）という概念に対応しています。
+*)
 
   Undo.
   inversion 1.
 (* end thide *)
 Qed.
 
-(** What does [inversion] do?  Think of it as a version of [destruct] that does its best to take advantage of the structure of arguments to inductive types.  In this case, [inversion] completed the proof immediately, because it was able to detect that we were using [isZero] with an impossible argument.
+(** 
+(* What does [inversion] do?  Think of it as a version of [destruct] that does its best to take advantage of the structure of arguments to inductive types.  In this case, [inversion] completed the proof immediately, because it was able to detect that we were using [isZero] with an impossible argument.*)
 
-Sometimes using [destruct] when you should have used [inversion] can lead to confusing results.  To illustrate, consider an alternate proof attempt for the last theorem. *)
+[inversion]は何をするタクティクなのでしょうか。
+「帰納型の引数の構造をできるだけ利用してくれる[destruct]の亜種」だと思うのが一番わかりやすいでしょう。
+この例では、[isZero]にありえない引数が使われていることを[inversion]が見つけてくれるので、たちどころに証明が終わります。
+
+(* Sometimes using [destruct] when you should have used [inversion] can lead to confusing results.  To illustrate, consider an alternate proof attempt for the last theorem. *)
+
+[inversion]を使うべき場面で[destruct]を使うと、思いがけない結果が得られて混乱することもあります。
+例として、先の定理の結論を別の矛盾した式に置き換えたものを証明してみましょう。
+*)
 
 Theorem isZero_contra' : isZero 1 -> 2 + 2 = 5.
   destruct 1.
-  (** [[
+  (** <<
   ============================
    1 + 1 = 4
- 
-   ]]
+   >>
+   
+(*   What on earth happened here?  Internally, [destruct] replaced [1] with a fresh variable, and, trying to be helpful, it also replaced the occurrence of [1] within the unary representation of each number in the goal.  Then, within the [O] case of the proof, we replace the fresh variable with [O].  This has the net effect of decrementing each of these numbers. *)
 
-   What on earth happened here?  Internally, [destruct] replaced [1] with a fresh variable, and, trying to be helpful, it also replaced the occurrence of [1] within the unary representation of each number in the goal.  Then, within the [O] case of the proof, we replace the fresh variable with [O].  This has the net effect of decrementing each of these numbers. *)
+何が起こったのでしょうか。
+[destruct]は、内部で[1]を新しい自由変数に置き換え、さらにゴールの各数字の単項表現に出現する[1]も置き換えようとします。
+その後、証明における場合分けに際し、[0]の場合には新しい自由変数が[0]で置き換えられます。
+この合わせ技で各数字が1ずつ減算されるのです。
+*)
 
 Abort.
 
-(** To see more clearly what is happening, we can consider the type of [isZero]'s induction principle. *)
+(**
+(* To see more clearly what is happening, we can consider the type of [isZero]'s induction principle. *)
 
+[isZero]の型について帰納法の原理を確認してみると、より明確に何が起きているかわかります。
+<<
 Check isZero_ind.
-(** %\vspace{-.15in}% [[
 isZero_ind
      : forall P : nat -> Prop, P 0 -> forall n : nat, isZero n -> P n
-   ]]
+>>
 
-   In our last proof script, [destruct] chose to instantiate [P] as [fun n => S n + S n = S (S (S (S n)))].  You can verify for yourself that this specialization of the principle applies to the goal and that the hypothesis [P 0] then matches the subgoal we saw generated.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
+(*   In our last proof script, [destruct] chose to instantiate [P] as [fun n => S n + S n = S (S (S (S n)))].  You can verify for yourself that this specialization of the principle applies to the goal and that the hypothesis [P 0] then matches the subgoal we saw generated.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
 
+先の証明では、[destruct]により、[P]が[fun n => S n + S n = S (S (S (S n)))]のように具体化されます。
+自分で確かめてみれば、帰納法の原理によるこの特定化をゴールに適用できて、[P 0]という仮定が先の例で得られたサブゴールに合致することが確認できるでしょう。
+証明をしていて奇妙な変身に遭遇した場合には、[destruct]の代わりに[inversion]を使ってみるとうまくいくかもしれません。
+*)
 
 (* begin hide *)
 (* In-class exercises *)

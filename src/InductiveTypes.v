@@ -915,7 +915,7 @@ End list.
 Arguments Nil [T].
 
 (**
-(*
+(* 
 After we end the section, the [Variable]s we used are added as extra function parameters for each defined identifier, as needed.  With an [Arguments]%~\index{Vernacular commands!Arguments}% command, we ask that [T] be inferred when we use [Nil]; Coq's heuristics already decided to apply a similar policy to [Cons], because of the [Set Implicit Arguments]%~\index{Vernacular commands!Set Implicit Arguments}% command elided at the beginning of this chapter.  We verify that our definitions have been saved properly using the [Print] command, a cousin of [Check] which shows the definition of a symbol, rather than just its type.
 *)
 セクションで使った[Variable]は、セクションを[End]で終端したあと、定義された各識別子に対する追加の関数パラメータとして付加されます。
