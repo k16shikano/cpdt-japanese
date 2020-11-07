@@ -888,17 +888,33 @@ End twoEls.
 (* end hide *)
 
 
-(** * Recursive Predicates *)
+(** (* Recursive Predicates *)
+* 再帰的な命題
+*)
 
-(** We have already seen all of the ingredients we need to build interesting recursive predicates, like this predicate capturing even-ness. *)
+(**
+(* We have already seen all of the ingredients we need to build interesting recursive predicates, like this predicate capturing even-ness. *)
+
+ここまでの説明で、興味深い再帰的な命題の構築に必要な要素はすべて登場しました。
+例として次のような偶奇性に関する命題を見てみましょう。
+*)
 
 Inductive even : nat -> Prop :=
 | EvenO : even O
 | EvenSS : forall n, even n -> even (S (S n)).
 
-(** Think of [even] as another judgment defined by natural deduction rules.  The rule [EvenO] has nothing above the line and [even O] below the line, and [EvenSS] is a rule with [even n] above the line and [even (S (S n))] below.
+(** 
 
-The proof techniques of the last section are easily adapted. *)
+(* Think of [even] as another judgment defined by natural deduction rules.  The rule [EvenO] has nothing above the line and [even O] below the line, and [EvenSS] is a rule with [even n] above the line and [even (S (S n))] below. *)
+
+[even]もまた、自然演繹の規則によって定義されており、判断だと考えられます。
+規則[EvenO]は、横線の上には何もなく、下には[even O]がある規則です。
+[EvenSS]は、横線の上に[even n]があり、下には[even (S (S n))]がある規則です。
+
+(* The proof techniques of the last section are easily adapted. *)
+
+前節の技法をそのまま使うのは簡単です。
+*)
 
 Theorem even_0 : even 0.
 (* begin thide *)
@@ -912,8 +928,17 @@ Theorem even_4 : even 4.
 (* end thide *)
 Qed.
 
-(** It is not hard to see that sequences of constructor applications like the above can get tedious.  We can avoid them using Coq's hint facility, with a new [Hint] variant that asks to consider all constructors of an inductive type during proof search.  The tactic %\index{tactics!auto}%[auto] performs exhaustive proof search up to a fixed depth, considering only the proof steps we have registered as hints. *)
+(** 
 
+(* It is not hard to see that sequences of constructor applications like the above can get tedious.  We can avoid them using Coq's hint facility, with a new [Hint] variant that asks to consider all constructors of an inductive type during proof search.  The tactic %\index{tactics!auto}%[auto] performs exhaustive proof search up to a fixed depth, considering only the proof steps we have registered as hints. *)
+
+このように構成子の適用を並べていく方法が冗長であることは想像に難くないでしょう。
+これはCoqが備えるヒントの仕組みを使えば回避できます。
+具体的には、帰納型のすべての構成子を証明の探索にあたって考慮するように、[Hint]というヴァリアントを使って指定します。
+これにより、%\index{tactics!auto}%[auto]タクティクで一定の深さまで証明を全探索する際、ヒントとして登録した証明のステップのみが考慮されるようになります。
+
+*)
+ 
 (* begin thide *)
 Hint Constructors even.
 
@@ -923,7 +948,11 @@ Qed.
 
 (* end thide *)
 
-(** We may also use [inversion] with [even]. *)
+(**
+(* We may also use [inversion] with [even]. *)
+
+[even]を使った定理を[inversion]で証明することもできます。
+*)
 
 Theorem even_1_contra : even 1 -> False.
 (* begin thide *)
@@ -934,30 +963,41 @@ Qed.
 Theorem even_3_contra : even 3 -> False.
 (* begin thide *)
   inversion 1.
-  (** [[
+  (** <<
   H : even 3
   n : nat
   H1 : even 1
   H0 : n = 1
   ============================
    False
- 
-   ]]
+  >>
 
-   The [inversion] tactic can be a little overzealous at times, as we can see here with the introduction of the unused variable [n] and an equality hypothesis about it.  For more complicated predicates, though, adding such assumptions is critical to dealing with the undecidability of general inversion.  More complex inductive definitions and theorems can cause [inversion] to generate equalities where neither side is a variable. *)
+(*   The [inversion] tactic can be a little overzealous at times, as we can see here with the introduction of the unused variable [n] and an equality hypothesis about it.  For more complicated predicates, though, adding such assumptions is critical to dealing with the undecidability of general inversion.  More complex inductive definitions and theorems can cause [inversion] to generate equalities where neither side is a variable. *)
+
+[inversion]タクティクは、少し余計なことをする場合があって、上記の例では使用していない変数[n]とその変数に関する等価性についての仮定が導入されています。
+とはいえ、こうした仮定の追加は、一般的な逆転における非決定性への対処のために、より複雑な命題では不可欠なものです。
+帰納的な定義と定理が複雑になると、[inversion]によって左右のいずれも変数になっていない等式が生成される場合があるのです。
+*)
 
   inversion H1.
 (* end thide *)
 Qed.
 
-(** We can also do inductive proofs about [even]. *)
+(**
+(* We can also do inductive proofs about [even]. *)
+
+[even]についての帰納的な証明も可能です。
+*)
 
 Theorem even_plus : forall n m, even n -> even m -> even (n + m).
 (* begin thide *)
-  (** It seems a reasonable first choice to proceed by induction on [n]. *)
-
+  (**
+  (* It seems a reasonable first choice to proceed by induction on [n]. *)
+  一見すると[n]についての帰納法で進めるのがよさそうに思えます。
+  *)
+  
   induction n; crush.
-  (** [[
+  (** <<
   n : nat
   IHn : forall m : nat, even n -> even m -> even (n + m)
   m : nat
@@ -965,13 +1005,16 @@ Theorem even_plus : forall n m, even n -> even m -> even (n + m).
   H0 : even m
   ============================
    even (S (n + m))
- 
-   ]]
+  >>
 
-   We will need to use the hypotheses [H] and [H0] somehow.  The most natural choice is to invert [H]. *)
+  (* We will need to use the hypotheses [H] and [H0] somehow.  The most natural choice is to invert [H]. *)
+  
+  なんとかして仮定[H]と[H0]を使う必要があります。
+  [H]を逆転させるのが自然でしょう。
+  *)
 
   inversion H.
-  (** [[
+  (** <<
   n : nat
   IHn : forall m : nat, even n -> even m -> even (n + m)
   m : nat
@@ -982,60 +1025,82 @@ Theorem even_plus : forall n m, even n -> even m -> even (n + m).
   H1 : S n0 = n
   ============================
    even (S (S n0 + m))
- 
-   ]]
+  >>
 
-  Simplifying the conclusion brings us to a point where we can apply a constructor. *)
+  (* Simplifying the conclusion brings us to a point where we can apply a constructor. *)
+  
+  結論を簡約すると、構成子を適用できるようになります。
+  *)
 
   simpl.
-  (** [[
+  (** <<
   ============================
    even (S (S (n0 + m)))
-   ]]
-   *)
+  >>
+  *)
 
   constructor.
 
-(** [[
+(** <<
   ============================
    even (n0 + m)
- 
-   ]]
+   >>
 
-   At this point, we would like to apply the inductive hypothesis, which is:
+  (* At this point, we would like to apply the inductive hypothesis, which is: *)
 
-   [[
+  この段階で以下のような帰納法の仮定を使いたくなるところです。
+  <<
   IHn : forall m : nat, even n -> even m -> even (n + m)
- 
-  ]]
+  >>
 
-  Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct _on the structure of one of the [even] proofs_.  This technique is commonly called%\index{rule induction}% _rule induction_ in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with "normal" induction is apparent.
+  (* Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct _on the structure of one of the [even] proofs_.  This technique is commonly called%\index{rule induction}% _rule induction_ in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with "normal" induction is apparent. *)
+  
+  残念ながら、[IHn]に合致する[n]が必要なところで、ゴールでは[n0]が表れています。
+  このまま証明を追える方法を探し続けることもできなくはありませんが、結局は基本的な戦略を変えるほうが得策です。
+  [n]の構造についての帰納法ではなく、_[even]の証明の構造についての帰納法_を使うことにしましょう。
+  この技法は、プログラミング言語の意味論では一般的に%\index{ルール帰納法}% _ルール帰納法_（rule induction）と呼ばれています。
+  すでに見たように、Coqにおける命題の定義では、データ型と同じ帰納型の仕組みを使います。
+  ルール帰納法と「ふつう」の帰納法の間にも、同じように根本的な統一関係があります。
 
-  Recall that tactics like [induction] and [destruct] may be passed numbers to refer to unnamed lefthand sides of implications in the conclusion, where the argument [n] refers to the [n]th such hypothesis. *)
+  (* Recall that tactics like [induction] and [destruct] may be passed numbers to refer to unnamed lefthand sides of implications in the conclusion, where the argument [n] refers to the [n]th such hypothesis. *)
+  
+  [induction]や[destruct]のようなタクティクでは、[n]番めの仮定を指定したい場合には[n]を引数として指定するというように、結論の含意の左側にある無名の仮定を数字で指定できました。
 
 Restart.
 
   induction 1.
-(** [[
+(** <<
   m : nat
   ============================
    even m -> even (0 + m)
-]]
+>>
 
-%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
-[[
+(* %\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt># *)
+
+二つめのサブゴールはこうです。
+
+<<
  even m -> even (S (S n) + m)
- 
- ]]
+>>
 
- The first case is easily discharged by [crush], based on the hint we added earlier to try the constructors of [even]. *)
+(* The first case is easily discharged by [crush], based on the hint we added earlier to try the constructors of [even]. *)
+
+最初のサブゴール[even m -> even (0 + m)]は、[crush]で簡単に証明できます。
+これは、[even]の構成子を試すようにヒントを与えているからです。
+
+*)
 
   crush.
 
-  (** Now we focus on the second case: *)
+  (**
+  
+  (* Now we focus on the second case: *)
+  ここで二つめの場合分けを考えます。
+  
+  *)
 
   intro.
-  (** [[
+  (** <<
   m : nat
   n : nat
   H : even n
@@ -1043,24 +1108,32 @@ Restart.
   H0 : even m
   ============================
    even (S (S n) + m)
- 
-   ]]
+  >>
 
-   We simplify and apply a constructor, as in our last proof attempt. *)
-
+  (* We simplify and apply a constructor, as in our last proof attempt. *)
+  
+  先に証明を試みたときと同様、簡約して構成子を適用します。
+  *)
+  
   simpl; constructor.
 
-(** [[
+(** <<
   ============================
    even (n + m)
- 
-   ]]
+   >>
 
-   Now we have an exact match with our inductive hypothesis, and the remainder of the proof is trivial. *)
+  (* Now we have an exact match with our inductive hypothesis, and the remainder of the proof is trivial. *)
+  
+  これで帰納法の仮定と合致する形になりました。残りの証明は自明です。
+  *)
 
   apply IHeven; assumption.
 
-  (** In fact, [crush] can handle all of the details of the proof once we declare the induction strategy. *)
+  (**
+  (* In fact, [crush] can handle all of the details of the proof once we declare the induction strategy. *)
+  
+  いったん帰納法の戦略を宣言すれば、証明の細部はすべて[crush]で済ませられます。
+  *)
 
 Restart.
 
@@ -1068,35 +1141,50 @@ Restart.
 (* end thide *)
 Qed.
 
-(** Induction on recursive predicates has similar pitfalls to those we encountered with inversion in the last section. *)
+(**
+(* Induction on recursive predicates has similar pitfalls to those we encountered with inversion in the last section. *)
+
+再帰的な命題についての帰納法にも、前節で逆転のときに遭遇したのと同様な落とし穴があります。
+*)
 
 Theorem even_contra : forall n, even (S (n + n)) -> False.
 (* begin thide *)
   induction 1.
-  (** [[
+  (** <<
   n : nat
   ============================
    False
-]]
+  >>
 
-%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
-[[
+(* %\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt># *)
+
+二つめのサブゴールはこうなります。
+<<
  False
- 
- ]]
+>>
 
- We are already sunk trying to prove the first subgoal, since the argument to [even] was replaced by a fresh variable internally.  This time, we find it easier to prove this theorem by way of a lemma.  Instead of trusting [induction] to replace expressions with fresh variables, we do it ourselves, explicitly adding the appropriate equalities as new assumptions. *)
+(* We are already sunk trying to prove the first subgoal, since the argument to [even] was replaced by a fresh variable internally.  This time, we find it easier to prove this theorem by way of a lemma.  Instead of trusting [induction] to replace expressions with fresh variables, we do it ourselves, explicitly adding the appropriate equalities as new assumptions. *)
+
+[even]の引数が内部で新しい自由変数に置き換えられたので、一つめのサブゴールの証明はすでに撃沈しています。
+この場合は、補題（Lemma）を用意することで、定理の証明が簡単になります。
+適切な等式を新しい仮定として追加することで、[induction]による新しい自由変数への置き換えを代わりに自分たちでやることにします。
+*)
 
 Abort.
 
 Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
   induction 1; crush.
 
-  (** At this point, it is useful to consider all cases of [n] and [n0] being zero or nonzero.  Only one of these cases has any trickiness to it. *)
+  (**
+  (* At this point, it is useful to consider all cases of [n] and [n0] being zero or nonzero.  Only one of these cases has any trickiness to it. *)
+  
+  この時点で、[n]と[n0]に関する場合分けがすべてゼロか否ゼロであることを考慮しておきましょう。
+  注意が必要なのは、それらのうち一つの場合だけです。
+  *)
 
   destruct n; destruct n0; crush.
 
-  (** [[
+  (** <<
   n : nat
   H : even (S n)
   IHeven : forall n0 : nat, S n = S (n0 + n0) -> False
@@ -1104,24 +1192,35 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
   H0 : S n = n0 + S n0
   ============================
    False
- 
-   ]]
+  >>
 
-  At this point it is useful to use a theorem from the standard library, which we also proved with a different name in the last chapter.  We can search for a theorem that allows us to rewrite terms of the form [x + S y]. *)
-
+  (* At this point it is useful to use a theorem from the standard library, which we also proved with a different name in the last chapter.  We can search for a theorem that allows us to rewrite terms of the form [x + S y]. *)
+  
+  ここで標準ライブラリの定理を使います。なお、前章では同じ定理を別の名前で証明しています。
+  [x + S y]という形式の項を書き換えられる定理を探してみましょう。
+<<
   SearchRewrite (_ + S _).
-(** %\vspace{-.15in}%[[
-  plus_n_Sm : forall n m : nat, S (n + m) = n + S m
-     ]]
+    plus_n_Sm : forall n m : nat, S (n + m) = n + S m
+>>
      *)
 
   rewrite <- plus_n_Sm in H0.
 
-  (** The induction hypothesis lets us complete the proof, if we use a variant of [apply] that has a %\index{tactics!with}%[with] clause to give instantiations of quantified variables. *)
+  (**
+  (* The induction hypothesis lets us complete the proof, if we use a variant of [apply] that has a %\index{tactics!with}%[with] clause to give instantiations of quantified variables. *)
+  
+  [apply]には、限量化された変数についての指示を%\index{tactics!with}%[with]節で指定できます。
+  これを使えば、帰納法の仮定により、証明は完了です。
+  *)
 
   apply IHeven with n0; assumption.
 
-  (** As usual, we can rewrite the proof to avoid referencing any locally generated names, which makes our proof script more readable and more robust to changes in the theorem statement.  We use the notation [<-] to request a hint that does right-to-left rewriting, just like we can with the [rewrite] tactic. *)
+  (**
+  (* As usual, we can rewrite the proof to avoid referencing any locally generated names, which makes our proof script more readable and more robust to changes in the theorem statement.  We use the notation [<-] to request a hint that does right-to-left rewriting, just like we can with the [rewrite] tactic. *)
+
+  いつものように、局所的に生成された名前の参照がなくなるように証明を書き換えることで、証明のスクリプトが読みやすく、かつ定理の文面の変更に対してより強固にします。
+  ここでは、書き換えのヒントを与えるのに[<-]という記法を使っています。これにより、[rewrite]タクティクで[<-]を指定したときと同じように、右辺から左辺への書き換えが実施されます。
+  *)
 
   Restart.
 
@@ -1133,17 +1232,38 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
     end; crush.
 Qed.
 
-(** We write the proof in a way that avoids the use of local variable or hypothesis names, using the %\index{tactics!match}%[match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem.
+(**
+(* We write the proof in a way that avoids the use of local variable or hypothesis names, using the %\index{tactics!match}%[match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem. *)
 
-The original theorem now follows trivially from our lemma, using a new tactic %\index{tactics!eauto}%[eauto], a fancier version of [auto] whose explanation we postpone to Chapter 13. *)
+この証明では、%\index{tactics!match}%[match]タクティクの形式を使ってゴールに対するパターンマッチを実施することで、局所変数や仮定の名前を使わないように書かれています。
+パターンではクエスチョンマークを前置した単一化変数を使っています。また、一つのパターンに単一化変数が二回出てくることを利用して、それらが等価性を主張しています。
+[plus_n_Sm]による書き換えを左辺から右辺へ行うというヒントを与えているので、この定理を適用すべき適切な場面を見定める必要がありません。
+
+(* The original theorem now follows trivially from our lemma, using a new tactic %\index{tactics!eauto}%[eauto], a fancier version of [auto] whose explanation we postpone to Chapter 13. *)
+
+定理は、補題から自明に従います。
+これには%\index{tactics!eauto}%[eauto]タクティクという、[auto]の便利な亜種を使います。
+[eauto]の説明は第13章までお預けです。
+
+*)
 
 Theorem even_contra : forall n, even (S (n + n)) -> False.
   intros; eapply even_contra'; eauto.
 Qed.
 
-(** We use a variant %\index{tactics!apply}%[eapply] of [apply] which has the same relationship to [apply] as [eauto] has to [auto].  An invocation of [apply] only succeeds if all arguments to the rule being used can be determined from the form of the goal, whereas [eapply] will introduce unification variables for undetermined arguments.  In this case, [eauto] is able to determine the right values for those unification variables, using (unsurprisingly) a variant of the classic algorithm for _unification_ %\cite{unification}%.
+(** 
 
-By considering an alternate attempt at proving the lemma, we can see another common pitfall of inductive proofs in Coq.  Imagine that we had tried to prove [even_contra'] with all of the [forall] quantifiers moved to the front of the lemma statement. *)
+(* We use a variant %\index{tactics!apply}%[eapply] of [apply] which has the same relationship to [apply] as [eauto] has to [auto].  An invocation of [apply] only succeeds if all arguments to the rule being used can be determined from the form of the goal, whereas [eapply] will introduce unification variables for undetermined arguments.  In this case, [eauto] is able to determine the right values for those unification variables, using (unsurprisingly) a variant of the classic algorithm for _unification_ %\cite{unification}%. *)
+
+[auto]の代わりに[eauto]を使う必要があるように、[apply]の代わりに%\index{tactics!apply}%[eapply]という亜種を使っています。
+[apply]は、利用されている規則の引数がすべてゴールの形式から決定可能な場合にのみ成功しますが、[eapply]は未決定の引数に対して単一化変数を導入してくれます。
+導入された単一化変数の値は、この例の場合、_ユニフィケーション_ %\cite{unification}%のための古典的なアルゴリズムを使うことで[eauto]により適切に決定されます。
+
+(* By considering an alternate attempt at proving the lemma, we can see another common pitfall of inductive proofs in Coq.  Imagine that we had tried to prove [even_contra'] with all of the [forall] quantifiers moved to the front of the lemma statement. *)
+
+補題に対する別証明を考えることで、Coqにおける帰納的な証明に共通するまた別の落とし穴が見えてきます。
+限量化子[forall]をすべて補題の言明の前に移動した[even_contra']という補題を証明しようとしたとしましょう。
+*)
 
 Lemma even_contra'' : forall n' n, even n' -> n' = S (n + n) -> False.
   induction 1; crush;
@@ -1151,22 +1271,41 @@ Lemma even_contra'' : forall n' n, even n' -> n' = S (n + n) -> False.
       | [ H : S ?N = ?N0 + ?N0 |- _ ] => destruct N; destruct N0
     end; crush.
 
-  (** One subgoal remains:
-
-     [[
+  (**
+   (* One subgoal remains: *)
+   サブゴールが一つ残ります。
+  <<
   n : nat
   H : even (S (n + n))
   IHeven : S (n + n) = S (S (S (n + n))) -> False
   ============================
    False
- 
-   ]]
+  >>
 
-   We are out of luck here.  The inductive hypothesis is trivially true, since its assumption is false.  In the version of this proof that succeeded, [IHeven] had an explicit quantification over [n].  This is because the quantification of [n] _appeared after the thing we are inducting on_ in the theorem statement.  In general, quantified variables and hypotheses that appear before the induction object in the theorem statement stay fixed throughout the inductive proof.  Variables and hypotheses that are quantified after the induction object may be varied explicitly in uses of inductive hypotheses. *)
+  (* We are out of luck here.  The inductive hypothesis is trivially true, since its assumption is false.  In the version of this proof that succeeded, [IHeven] had an explicit quantification over [n].  This is because the quantification of [n] _appeared after the thing we are inducting on_ in the theorem statement.  In general, quantified variables and hypotheses that appear before the induction object in the theorem statement stay fixed throughout the inductive proof.  Variables and hypotheses that are quantified after the induction object may be varied explicitly in uses of inductive hypotheses. *)
+
+ここで手詰まりになります。
+帰納法の仮定は、仮定が偽なので明らかに成り立ちます。
+この証明は、[IHeven]において[n]が追加で限量化されている場合にはうまくいきます。
+なぜなら、[n]の限量化は_帰納法の対象の後_に現れるからです。
+一般に、定理の言明において帰納的な対象より前に限量化された変数と仮定が現れる場合、その言明は帰納法による証明の最中に変化していきません。
+帰納的な対象の後で限量化されている変数や仮定であれば、帰納法の仮定を利用できる形で変化する可能性があります。
+  *)
+
 
 Abort.
 
-(** Why should Coq implement [induction] this way?  One answer is that it avoids burdening this basic tactic with additional heuristic smarts, but that is not the whole picture.  Imagine that [induction] analyzed dependencies among variables and reordered quantifiers to preserve as much freedom as possible in later uses of inductive hypotheses.  This could make the inductive hypotheses more complex, which could in turn cause particular automation machinery to fail when it would have succeeded before.  In general, we want to avoid quantifiers in our proofs whenever we can, and that goal is furthered by the refactoring that the [induction] tactic forces us to do. *)
+(**
+(* Why should Coq implement [induction] this way?  One answer is that it avoids burdening this basic tactic with additional heuristic smarts, but that is not the whole picture.  Imagine that [induction] analyzed dependencies among variables and reordered quantifiers to preserve as much freedom as possible in later uses of inductive hypotheses.  This could make the inductive hypotheses more complex, which could in turn cause particular automation machinery to fail when it would have succeeded before.  In general, we want to avoid quantifiers in our proofs whenever we can, and that goal is furthered by the refactoring that the [induction] tactic forces us to do. *)
+
+Coqにおいて[induction]がこのように実装されているのはなぜでしょうか。
+[induction]は基本的なタクティクであり、そこに余分なヒューリスティックを求めることによる負担を回避したいというのが一つの理由ですが、それだけではありません。
+もし[induction]が変数間の依存関係を解析し、後段で帰納法の仮定をできるだけ自由に使えるように限量化子の順番を並べ替えてくれるとしたら、どうでしょうか。
+その場合には、帰納法の仮定が複雑になり、結果として、本来なら成功するはずの自動化の仕組みが失敗するようになる可能性があります。
+一般に、証明では限量化子をできるだけ避け、[induction]タクティクによって強制されるような仕方でゴールが書き換えられるほうが都合がいいのです。
+
+*)
+
 (* end thide *)
 
 
