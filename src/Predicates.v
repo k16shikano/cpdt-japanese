@@ -40,8 +40,8 @@ Reset unit.
 (* The so-called %\index{Curry-Howard correspondence}``%#"#Curry-Howard correspondence#"#%''~\cite{Curry,Howard}% states a formal connection between functional programs and mathematical proofs.  In the last chapter, we snuck in a first introduction to this subject in Coq.  Witness the close similarity between the types [unit] and [True] from the standard library: *)
 
 関数プログラミングと数学の証明の間には%\index{Curry-Howard対応}``%#"#Curry-Howard対応#"#%''~\cite{Curry,Howard}%と呼ばれる形式的な関係があります。
-実を言うとCoqにおけるCurry-Howard対応は前章ですでに初登場しています。
-標準ライブラリの[unit]と[True]がとてもよく似ていることに注目してください。
+前章でもCoqにおけるCurry-Howard対応は簡単に紹介しました。
+標準ライブラリでは[unit]と[True]がとてもよく似ていることに注目しましょう。
 <<
 Print unit.
   Inductive unit : Set :=  tt : unit
@@ -72,19 +72,19 @@ With that perspective in mind, this chapter is sort of a mirror image of the las
 [unit]型は1つの値を持ち、それは[tt]です。
 [True]型は1つの証明を持ち、それは[I]です。
 これらの型を区別する理由はあるでしょうか？
-多くの人は、カリーハワード対応を抽象的な説明として知っていて証明工学で使ったことがないうちは、これら2つの型を実際には区別する＿べきではない＿と考えます。
-この見方には、ある種の審美的な魅力があります。しかし筆者の考えでは、実用的な証明においてはカリーハワード対応をゆるく活用して両者を区別するのが一番です。
+多くの人は、Curry-Howard対応を抽象的な説明として知っていて証明工学で使ったことがないうちは、これら2つの型を実際には区別する＿べきではない＿と考えます。
+この見方には、ある種の審美的な魅力があります。しかし筆者の考えでは、実用的な証明においてはCurry-Howard対応をゆるく活用して両者を区別するのが一番です。
 両者を区別することには、Coq特有の理由、すなわち効率的なコンパイルと古典的な数学（論理学）におけるパラドクスを避けるためという理由もあります。
 しかし、プログラミングと証明を混然一体にして扱うのを避けることは、むしろより一般的な原則から導かれる結論でもあるのです。
 
-その原則とは何でしょうか。ごく大雑把に要約すると、「[A -> B]型の関数をすべて同じようにはプログラミングできないが、[P -> Q]という命題の証明はすべて同じようにできる」ということです。
-この発想は%\index{proof irrelevance}%＿proof irrelevance＿として知られています。これを論理学で形式化すれば、同一の命題に対する異なる証明は互いに区別できない、ということが言えます。
-このproof irrelevanceは、Gallina上で成立しますが、導出はできません。
+その原則とは何でしょうか。ごく大雑把に要約すると、「[A -> B]型の関数をすべて同じようにはプログラミングできないが、[P -> Q]という命題はすべて同じように証明できる」ということです。
+この発想は%\index{proof irrelevance}%＿proof irrelevance＿として知られています。これを論理学で形式化すれば、同一の命題に対する異なる証明は互いに区別できない、と言えます。
+proof irrelevanceは、Gallina上で成立しますが、導出はできません。
 本章では、この理論上の課題はいったんわきに置いておいて、proof irrelevanceがCoqにおける開発でとても効果的であり、そのおかげでプログラムと証明に対して別々の技法を使えることを見ていきます。
 本書の大部分でも、プログラムを書く際には依存型のある関数プログラミングにおける標準的な技法を利用し、証明においてはLtacの決定手続きを独自に定義することで、両者の区別を利用しています。
 
 上記のような観点に立てば、本章は前章の鏡像のようなものです。すなわち、本章では帰納的な定義を使って命題を定義する方法を紹介します。
-命題は、随所で「データ型」との類似を指摘しているものの、その類似性がCoqを効果的に使うための道具になることはあまりありません。
+命題と「データ型」との類似を随所で指摘しますが、その類似性がCoqを効果的に使うための道具になることはあまりありません。
 さらに本章では依存型もこっそり導入します。依存型は面白い帰納的命題を作る土台です。
 ただし依存型を使った証明項の構築では今のところタクティクを使い、手作業で依存型を活用する例は後の章で扱うことにします。
 *)
@@ -97,7 +97,7 @@ With that perspective in mind, this chapter is sort of a mirror image of the las
 (**
 (* Let us begin with a brief tour through the definitions of the connectives for propositional logic.  We will work within a Coq section that provides us with a set of propositional variables.  In Coq parlance, these are just variables of type [Prop]. *)
 
-命題論理で使われる結合記号の定義を簡単に見ていくことから始めましょう。
+命題論理で使われる論理結合の定義を簡単に見ていくことから始めましょう。
 以降の説明はCoqのセクション内で進めます。セクション内では命題変数が使えます。
 命題変数とは、Coqの用語で言えば、単なる[Prop]型の変数です。
 *)
@@ -110,7 +110,7 @@ Section Propositional.
 
 We have also already seen the definition of [True].  For a demonstration of a lower-level way of establishing proofs of inductive predicates, we turn to this trivial theorem. *)
 
-Coqにおけるもっとも基本的な命題の結合記号は含意であり、[->]で表します。この記号は、これまでのほぼすべての証明でも使ってきました。
+Coqにおけるもっとも基本的な命題の論理結合は含意であり、[->]で表します。この記号は、これまでのほぼすべての証明でも使ってきました。
 含意は帰納的に定義されているわけではなく、関数型の構成子としてCoqに組み込まれています。
 
 帰納的な述語に対する証明を低レベルな方法で構成する例として、すでに定義を知っている[True]を使った次の自明な定理を見てみましょう。
@@ -139,7 +139,7 @@ Coqにおけるもっとも基本的な命題の結合記号は含意であり�
 (**
 (* There is also a predicate [False], which is the Curry-Howard mirror image of [Empty_set] from the last chapter. *)
 
-[False]も述語です。これはカリーハワード対応では[Empty_set]の鏡像です。
+[False]も述語です。これはCurry-Howard対応では[Empty_set]の鏡像です。
 <<
 Print False.
   Inductive False : Prop :=
@@ -179,7 +179,6 @@ Print False.
 *)
 
     elimtype False.
-
 
 (** <<
   H : 2 + 2 = 5
@@ -239,7 +238,7 @@ Print not.
 
 (*  The interested reader can check that [and] has a Curry-Howard equivalent called %\index{Gallina terms!prod}%[prod], the type of pairs.  However, it is generally most convenient to reason about conjunction using tactics.  An explicit proof of commutativity of [and] illustrates the usual suspects for such tasks.  The operator [/\] is an infix shorthand for [and]. *)
 
-[and]は、カリーハワード対応によって%\index{Gallina terms!prod}%[prod]（ペアの型）と同値になります（興味がある読者は自分で確かめてみてください）。
+[and]は、Curry-Howard対応によって%\index{Gallina terms!prod}%[prod]（ペアの型）と同値になります（興味がある読者は自分で確かめてみてください）。
 ただし、連言に関する推論では一般にタクティクを使うのがもっとも簡便です。
 そのことを示す好例として、[and]の可換性を明示的に証明してみましょう。
 なお、[/\]演算子は[and]の中置による略記法です。
@@ -307,7 +306,7 @@ Print or.
 (* We see that there are two ways to prove a disjunction: prove the first disjunct or prove the second.  The Curry-Howard analogue of this is the Coq %\index{Gallina terms!sum}%[sum] type.  We can demonstrate the main tactics here with another proof of commutativity. *)
 
 上記からわかるように、選言の証明には二つの方法があります。一つめの選言肢を証明するか、二つめの選言肢を証明するかです。
-カリーハワード対応では、選言はCoqの[sum]型に対応します。
+Curry-Howard対応では、選言はCoqの[sum]型に対応します。
 連言と同様、可換性の証明を例にして主なタクティクの使い方を見てみましょう。
 *)
 
@@ -428,7 +427,7 @@ Coqには%\index{tactics!tauto}%[tauto]というタクティクが備わって�
 算術のような他の知恵を使う必要もあります。
 Coqには、%\index{tactics!intuition}%[intuition]という、汎用の[tauto]として使えるタクティクがあります。
 [intuition]を使うことで、命題論理による推論を使って証明できるものは何でも証明できます。
-さらに[intuition]は、証明を完了するために確立すべき事実がほかにあるときは、命題論理の法則を使ってそれをなるべく簡潔な形にしてくれます。
+さらに[intuition]は、証明を完了するために確立すべき事実がほかにあるときは、命題論理の規則を使ってそれをなるべく簡潔な形にしてくれます。
 標準ライブラリのリスト連結演算%\coqdocnotation{%#<tt>#++#</tt>#%}%を使っている下記の例を考えてみましょう。
 *)
 
@@ -503,7 +502,7 @@ End Propositional.
 
 (**
 (* * What Does It Mean to Be Constructive? *)
-* 構成的であるとは何を意味するか
+* 構成的であるとはどういうことか
 *)
 
 (**
@@ -526,23 +525,23 @@ We will see more about Coq's program extraction facility in a later chapter.  Ho
 その答えは、Coqが実装しているのがお馴染みの%\index{古典論理}%古典論理ではなく、%\index{構成的論理}%＿構成的論理＿、あるいは%\index{直観主義論理|see{構成的論理}}%＿直観主義論理＿だからです。
 構成的論理では、[~ ~ P -> P]や[P \/ ~ P]のような、古典論理では恒真な命題が常には成り立ちません。
 これらの恒真な命題を証明できるのは、%\index{計算可能性理論|see{決定可能性}}%計算可能性理論で言うところの、[P]が%\index{決定可能性}%＿決定可能＿な場合のみです。
-Coqにおける[or]のカリーハワード対応は、[P \/ ~ P]の任意の証明から[P]の証明もしくは[~ P]の証明を抽出することを許しています。
+Coqにおける[or]のCurry-Howard対応は、[P \/ ~ P]の任意の証明から[P]の証明もしくは[~ P]の証明を抽出することを許しています。
 Coqにおける証明は実行可能な関数プログラムにすぎないので、もし%\index{排中律}%排中律を許せば、[P]の具体化として「このチューリングマシンは停止する」のような式を選ぶことで、停止問題に対する決定手続きが得られてしまいます。
 
 「すべての命題が[True]または[False]に評価される」とすることには、同様のパラドクスを引き起こす恐れがあります。
-Coqにおけるプログラムの評価は決定可能なので、扱う命題も決定可能なものに限ることにします。
+Coqにおけるプログラムの評価は決定可能なので、扱う命題も決定可能なものに限られることになるでしょう。
 
-[bool]と[Prop]が区別されているのは、こうした理由によります。[bool]型のプログラムは、その構成からして計算を扱うものであり、常に実行することで決定可能です。
+[bool]と[Prop]が区別されているのは、こうした理由によります。[bool]型のプログラムは、その構成からして計算を扱うものであり、実行することで常に決定可能です。
 [Prop]には決定不能なものも多くあるので、[bool]を使っては表現できない式が書けるようになりますが、必然的に「真偽を確かめるために[Prop]を実行する」ことはできません。
 
 構成的論理を採用すると、どの論理結合も直交した帰納的定義によるすっきりした方法で定義できるようになります。
 言い換えると、個々の論理結合を簡潔かつ共通の機構で独立に定義できます。
 また、構成的論理には%\index{program extraction}%プログラム抽出が可能になるという特長もあります。
-これは、プログラムを「証明すべき定理」として記述できるということです。
-Coqにおける証明は単なる関数プログラムなので、証明ができれば、そこから実行できるプログラムを抽出できます。これは古典論理では自然に実現できなかったでしょう。
+つまり、プログラムを「証明すべき定理」として記述できるということです。
+Coqにおける証明は単なる関数プログラムなので、証明ができれば、そこから実行できるプログラムを抽出できます。これを古典論理で自然に実現するのは難しかったでしょう。
 
 Coqのプログラム抽出機能については後の章でより詳しく説明しますが、ここでも改めて注意しておきます。
-あまりカリーハワード対応を真に受けないでください。
+すなわち、あまりCurry-Howard対応を真に受けないでください。
 Coqによる定理証明を使ってプログラムを書くことは可能ですが、実際にやる人はほとんどいません。
 証明とプログラムは常に区別するように心がけてください。
 定理を証明することでプログラムを書けば、証明を簡単にしようとする努力の結果、アルゴリズムの面での非効率に悩まされることでしょう。
@@ -560,8 +559,8 @@ Coqによる定理証明を使ってプログラムを書くことは可能で�
 
 %\index{existential quantification}\index{Gallina terms!exists}\index{Gallina terms!ex}%Existential quantification is defined in the standard library. *)
 
-これまでの例にも登場しているように、Coqには一階の論理における%\index{Gallina terms!forall}%[forall]限定子が組み込まれています。
-[forall]結合子は、少し先取りして言うと、依存関数型の構成子とみなせます。
+これまでの例にも登場しているように、Coqには一階の論理における%\index{Gallina terms!forall}%[forall]限量子が組み込まれています。
+[forall]限量子は、少し先取りして言うと、依存関数型の構成子とみなせます。
 実際、含意と全称限量化は、Coqでは同一の機構に対する別々の記法にすぎません。
 [P -> Q]という式は[forall x : P, Q]と等価なのです（ただし[x]は[Q]には現れないものとします）。
 言い換えると、含意には「[P]のすべての証明に対し、[Q]の証明が存在する」という意味合いになります。
@@ -580,7 +579,7 @@ Coqによる定理証明を使ってプログラムを書くことは可能で�
 
   Here is an example of a theorem statement with existential quantification.  We use the equality operator [=], which, depending on the settings in which they learned logic, different people will say either is or is not part of first-order logic.  For our purposes, it is. *)
 
-（[forall]限定子のスコープは常にできるだけ大きく取られるので、上記の[ex_intro]は[forall x : A, (P x -> ex P)]とも書いたのと同じです。）
+（[forall]限量子のスコープは常にできるだけ大きく取られるので、上記の[ex_intro]は[forall x : A, (P x -> ex P)]とも書いたのと同じです。）
 
 [ex]は、限量化する型[A]と、[A]上の術語[P]をパラーメータとして取ります。
 存在限量化された命題の証明では、型[A]を持つ何らかの[x]を、[P x]の証明を添えて提示することになります。
@@ -934,7 +933,7 @@ Qed.
 
 このように構成子の適用を並べていく方法が冗長であることは想像に難くないでしょう。
 これはCoqが備えるヒントの仕組みを使えば回避できます。
-具体的には、帰納型のすべての構成子を証明の探索にあたって考慮するように、[Hint]というヴァリアントを使って指定します。
+具体的には、[Hint]の亜種を使って、帰納型のすべての構成子を証明の探索にあたって考慮するように指定します。
 これにより、%\index{tactics!auto}%[auto]タクティクで一定の深さまで証明を全探索する際、ヒントとして登録した証明のステップのみが考慮されるようになります。
 
 *)
@@ -1235,8 +1234,8 @@ Qed.
 (**
 (* We write the proof in a way that avoids the use of local variable or hypothesis names, using the %\index{tactics!match}%[match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem. *)
 
-この証明では、%\index{tactics!match}%[match]タクティクの形式を使ってゴールに対するパターンマッチを実施することで、局所変数や仮定の名前を使わないように書かれています。
-パターンではクエスチョンマークを前置した単一化変数を使っています。また、一つのパターンに単一化変数が二回出てくることを利用して、それらが等価性を主張しています。
+この証明は、%\index{tactics!match}%[match]タクティクの形式を使ってゴールに対するパターンマッチを実施することで、局所変数や仮定の名前を使わないように書かれています。
+パターンではクエスチョンマークを前置した単一化変数を使っています。また、一つのパターンに単一化変数が二回出てくることを利用して、それらの等価性を主張しています。
 [plus_n_Sm]による書き換えを左辺から右辺へ行うというヒントを与えているので、この定理を適用すべき適切な場面を見定める必要がありません。
 
 (* The original theorem now follows trivially from our lemma, using a new tactic %\index{tactics!eauto}%[eauto], a fancier version of [auto] whose explanation we postpone to Chapter 13. *)
@@ -1262,7 +1261,7 @@ Qed.
 (* By considering an alternate attempt at proving the lemma, we can see another common pitfall of inductive proofs in Coq.  Imagine that we had tried to prove [even_contra'] with all of the [forall] quantifiers moved to the front of the lemma statement. *)
 
 補題に対する別証明を考えることで、Coqにおける帰納的な証明に共通するまた別の落とし穴が見えてきます。
-限量化子[forall]をすべて補題の言明の前に移動した[even_contra']という補題を証明しようとしたとしましょう。
+[forall]限量子をすべて補題の言明の前に移動した[even_contra']という補題を証明しようとしたとしましょう。
 *)
 
 Lemma even_contra'' : forall n' n, even n' -> n' = S (n + n) -> False.
@@ -1300,9 +1299,9 @@ Abort.
 
 Coqにおいて[induction]がこのように実装されているのはなぜでしょうか。
 [induction]は基本的なタクティクであり、そこに余分なヒューリスティックを求めることによる負担を回避したいというのが一つの理由ですが、それだけではありません。
-もし[induction]が変数間の依存関係を解析し、後段で帰納法の仮定をできるだけ自由に使えるように限量化子の順番を並べ替えてくれるとしたら、どうでしょうか。
+もし[induction]が変数間の依存関係を解析し、後段で帰納法の仮定をできるだけ自由に使えるように限量子の順番を並べ替えてくれるとしたら、どうでしょうか。
 その場合には、帰納法の仮定が複雑になり、結果として、本来なら成功するはずの自動化の仕組みが失敗するようになる可能性があります。
-一般に、証明では限量化子をできるだけ避け、[induction]タクティクによって強制されるような仕方でゴールが書き換えられるほうが都合がいいのです。
+一般に、証明では限量子をできるだけ避け、[induction]タクティクによって強制されるような仕方でゴールが書き換えられるほうが都合がいいのです。
 
 *)
 
