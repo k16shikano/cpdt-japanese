@@ -23,13 +23,16 @@ Set Asymmetric Patterns.
 (if
        (string= default-directory "/Users/ksk/project/cpdt-japanese/src/")
        (setq coq-prog-name
-	     (ocaml-dir "bin/coqtop"))) (** %\chapter{Infinite Data and Proofs}% *)
+	     (ocaml-dir "bin/coqtop"))) 
 *)
-(** %\chapter{無限の大きさをもつデータと証明}% *)
 
 (**
+(* %\chapter{Infinite Data and Proofs}% *)
+%\chapter{無限を表すデータと証明}%
+*)
+
 (**
-In lazy functional programming languages like %\index{Haskell}%Haskell, infinite data structures are everywhere%~\cite{whyfp}%.  Infinite lists and more exotic datatypes provide convenient abstractions for communication between parts of a program.  Achieving similar convenience without infinite lazy structures would, in many cases, require acrobatic inversions of control flow. 
+(* In lazy functional programming languages like %\index{Haskell}%Haskell, infinite data structures are everywhere%~\cite{whyfp}%.  Infinite lists and more exotic datatypes provide convenient abstractions for communication between parts of a program.  Achieving similar convenience without infinite lazy structures would, in many cases, require acrobatic inversions of control flow. 
 
 %\index{laziness}%Laziness is easy to implement in Haskell, where all the definitions in a program may be thought of as mutually recursive.  In such an unconstrained setting, it is easy to implement an infinite loop when you really meant to build an infinite list, where any finite prefix of the list should be forceable in finite time.  Haskell programmers learn how to avoid such slip-ups.  In Coq, such a laissez-faire policy is not good enough.
 
@@ -48,65 +51,48 @@ Luckily, Coq has special support for a class of lazy data structures that happen
 *)
 
 (**
-%\index{Haskell}%Haskellのような遅延評価を行う関数型プログラミング言語では，
-無限の大きさをもつデータ構造があらゆるところで扱われています%~\cite{whyfp}%．
-無限リストなどの特殊なデータ構造は，
-プログラム内でのデータのやり取りを抽象的に捉えるためには便利なものです．
-遅延評価を伴う無限のデータ構造を使わずに同じような利便性を得るためには，
-制御フローを元にしてプログラムを記述するという巧妙な反転の仕組みが必要となるでしょう．
+%\index{Haskell}%Haskellのような遅延評価の関数型プログラミング言語では、無限の大きさをもつデータ構造があらゆるところで扱われています%~\cite{whyfp}%。
+無限リストや風変わりなデータ構造は、プログラム内でのデータのやり取りを抽象的に捉えるには便利なものです。
+遅延評価を伴う無限のデータ構造を使わずに同じような利便性を得ようと思ったら、制御フローを逆向きにする巧妙な仕掛けが多くの場合には必要になるでしょう。
 
-Hakellにおいて%\index{遅延評価}%遅延評価を行うプログラムを実装するのは
-簡単です．
-これは，プログラム内のすべての定義が相互再帰によって与えられていると考えることができるためです．
-このように自由な関数定義が許されている設定では，
-本当に無限の大きさをもつリストを作るの際には無限ループになる式を書くだけですが，
-そのリストの先頭の有限個の要素だけが必要なら有限の時間で結果を得られるように注意する必要があります．
-Haskellプログラマはそういった点に気をつけながらプログラムを書く方法を学習します．
-Coqでは，関数やデータを定義する際にはこのような自由放任主義が通用しません．
+%\index{遅延}%遅延の扱いが簡単なHakellでは、プログラム内のすべての定義が相互再帰していると考えられます。
+そのような状況なので、無限の大きさをもつリストを本当に作りたければ、先頭の有限個の要素を有限の時間で取り出せるようにした上で簡単に無限ループを導入できます。
+Haskellプログラマは、そうした制約がない状況で失敗しないようにプログラムを書く方法を学習しますが、Coqにおける関数やデータの定義では放任主義は通用しません。
 
-前の章でカリーハワード同型について時間をかけて説明してきたように，
-証明は関数型プログラムと見なすことができます．
-この考えのもとでは，無限ループは，
-それが意図的であってもそうでなくても，ひどい結果をもたらします．
-もしCoqがHaskellのような定義の柔軟さを許すならば，
-無限にループするプログラムを記述することができてしまい，
-それによって任意の命題が証明できることになるでしょう．
-つまり，CICに一般再帰を追加すると「矛盾」が生じてしまうのです．
-たとえば，任意の命題 [P] に対して，
-次の再帰関数が定義できたとしましょう：
+前章でCurry-Howard同型対応について説明したように、証明は関数プログラムとみなせます。
+この観点からすると、意図的であるか否かによらず、無限ループは大問題です。
+もしCoqでHaskellのように柔軟な定義を認め、無限ループのコードを書けてしまったら、それを任意の証明で意味もなく使えることになるからです。
+つまり、一般的な再帰を認めてしまうと、CICが_矛盾_します。
+実際、Coqで一般的な再帰が可能であれば、任意の命題[P]に対して次のように書けてしまうでしょう。
+
 [[
 Fixpoint bad (u : unit) : P := bad u.
 ]]
 
-この関数を使えば [P] 型をもつ式 [bad tt] を作ることができるので，
-命題 [P] が証明できてしまいます．
+これにより、[P]の証明として式[bad tt]を作れてしまいます。
 
-あらゆる入力に対する停止性が強く望まれるようなアルゴリズム的な配慮もあります．
-これまで，[reflexivity] のようなタクティックがどのようにして項同士を比較し，
-計算規則のもとで等価性を判定するかを見てきました．
-明示的な証明ステップを経るまでもなく，
-再帰的でパターンマッチを利用した関数の呼び出しは自動的に簡約されます．
-そういった利点を維持しながら，停止しないプログラムも書けるようにするのは簡単ではありません．
-そこにはチューリング機械の停止性問題が立ちはだかることでしょう．
+無限ループを制限するほうが全体的な停止性にとって望ましいという、アルゴリズム的な配慮もあります。
+これまで見たように、[reflexivity]のようなタクティクは、等価性に至るまで計算規則のもとで項を比較していきます。
+再帰的にパターンマッチを実行する関数の呼び出しは自動的に簡約され、その際に証明ステップを明示する必要はありません。
+停止しないプログラムを書けるようにしたら、そういった利点を維持することがとても難しくなるでしょう。
+そこには停止性問題が立ちはだかるからです。
 
-1つの解決方法は，停止しない可能性があることを表すような型を使うことです．
-たとえば，「非停止モナド」を作ってその内側に一般再帰のプログラムを閉じ込めることも考えられます．この手法のいくつかは7章で解説しますが，非常に煩雑な方法なのでできれば避けたいところです．
+解決策の一つは、停止しない可能性があることを表す型を使うことです。
+たとえば、「非停止モナド」を作り、その内側に一般的な再帰のプログラムを閉じ込めるという方法が考えられます（こうした手法のいくつかは第7章で解説します）。
+この方法は非常に煩雑なのでできれば避けたいところです。
 
-幸運なことにCoqには遅延データ構造のクラスが特別に用意されていて，
-Haskellで使われている多くの例はこのクラスに含まれています．
-これが%\index{余帰納型}%余帰納型と呼ばれる仕組みであり，本章の主題です．
+幸いCoqには、Haskellで登場する例の多くが含まれるような遅延データ構造のクラスが特別に用意されています。
+この機構が本章の主題である%\index{余帰納型}%_余帰納型_（co-inductive type）です。
 *)
 
 (**
-(** * Computing with Infinite Data *)
+(* * Computing with Infinite Data *)
+* 無限を表すデータを使った計算
 *)
-(** * 無限の大きさをもつデータを使った計算 *)
 
 (**
-(** Let us begin with the most basic type of infinite data, _streams_, or lazy lists.%\index{Vernacular commands!CoInductive}% *)
-*)
-(**
-まずは最も基本的な無限データである「ストリーム」(遅延リスト) を考えましょう．%\index{Vernacular commands!CoInductive}%
+(* Let us begin with the most basic type of infinite data, _streams_, or lazy lists.%\index{Vernacular commands!CoInductive}% *)
+まずは無限を表すデータとして最も基本的な_ストリーム_（遅延リスト）を考えましょう。%\index{Vernacular commands!CoInductive}%
 *)
 
 Section stream.
@@ -123,28 +109,22 @@ CoInductive evilStream := Nil.
 (* end hide *)
 
 (**
-(** The definition is surprisingly simple.  Starting from the definition of [list], we just need to change the keyword [Inductive] to [CoInductive].  We could have left a [Nil] constructor in our definition, but we will leave it out to force all of our streams to be infinite.
+(* The definition is surprisingly simple.  Starting from the definition of [list], we just need to change the keyword [Inductive] to [CoInductive].  We could have left a [Nil] constructor in our definition, but we will leave it out to force all of our streams to be infinite.
 
    How do we write down a stream constant?  Obviously, simple application of constructors is not good enough, since we could only denote finite objects that way.  Rather, whereas recursive definitions were necessary to _use_ values of recursive inductive types effectively, here we find that we need%\index{co-recursive definitions}% _co-recursive definitions_ to _build_ values of co-inductive types effectively.
 
    We can define a stream consisting only of zeroes.%\index{Vernacular commands!CoFixpoint}% *)
-*)
-(**
-この定義は驚くほど単純です．
-[list]の定義の[Inductive]というキーワードを[CoInductive]に変えただけです．
-[Nil]構成子を定義に残すこともできましたが，
-無限の大きさをもつストリームしか表現できないようにするために外すことにします．
+
+驚くほど簡潔な定義です。
+[list]の定義における[Inductive]というキーワードを、[CoInductive]に変えただけです。
+[Nil]構成子を定義に残してもいいのですが、無限の長さのストリームしか表現できないようにするために外すことにします。
 
 ストリーム型の値を書き下すにはどうすればよいでしょう？
-単純に構成子を適用していくだけでは有限の大きさのデータしか表現できないということは明らかです．
-(* より正確に言えば，*)
-再帰的な帰納型の値を有限時間で「消費」するために
-再帰的な定義を使うのと同じように，
-余帰納型の値を有限時間で「生産」するためには，
-%\index{余再帰的定義}%余再帰的定義が必要になるということです．
+単純に構成子を適用していくだけでは、有限のデータしか表現できないのは明白です。
+再帰的な帰納型の値を有限の時間で_消費_するには、再帰的な定義を必要としました。
+それに対し、余帰納型の値を有限の時間で_生産_するのに必要なのは、%\index{余再帰的定義}%_余再帰的定義_です。
 
-0しか含まないようなストリームは次のように定義できます．%\index{Vernacular commands!CoFixpoint}% 
-
+ゼロだけを含むストリームは次のように定義できます。%\index{Vernacular commands!CoFixpoint}% 
 *)
 
 CoFixpoint zeroes : stream nat := Cons 0 zeroes.
@@ -153,20 +133,18 @@ CoFixpoint zeroes : stream nat := Cons 0 zeroes.
 (* begin thide *)
 
 (**
-(** We can also define a stream that alternates between [true] and [false]. *)
+(* We can also define a stream that alternates between [true] and [false]. *)
+[true]と[false]が交互に現れるストリームは次のように定義できます．
 *)
-(** [true]と[false]が交互に現れるストリームは次のように定義できます． *)
 
 CoFixpoint trues_falses : stream bool := Cons true falses_trues
 with falses_trues : stream bool := Cons false trues_falses.
 (* end thide *)
 
 (**
-(** Co-inductive values are fair game as arguments to recursive functions, and we can use that fact to write a function to take a finite approximation of a stream. *)
-*)
-(** 
-余帰納的な値を再帰的関数の引数として与えることにより，
-ストリームに対する有限の近似を求める関数を定義することができます．
+(* Co-inductive values are fair game as arguments to recursive functions, and we can use that fact to write a function to take a finite approximation of a stream. *)
+
+余帰納的な値は、再帰関数の引数として与えることが可能です。これにより、ストリームに対する有限の近似を求める関数を定義できます。
 *)
 
 (* EX: Define a function to calculate a finite approximation of a stream, to a particular length. *)
@@ -182,21 +160,21 @@ Fixpoint approx A (s : stream A) (n : nat) : list A :=
   end.
 
 Eval simpl in approx zeroes 10.
-(** %\vspace{-.15in}% [[
+(** <<
      = 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: nil
      : list nat
-     ]]
-     *)
+    >>
+*)
 
 Eval simpl in approx trues_falses 10.
-(** %\vspace{-.15in}% [[
+(** <<
      = true
        :: false
           :: true
              :: false
                 :: true :: false :: true :: false :: true :: false :: nil
      : list bool
-      ]]
+    >>
 *)
 
 (* end thide *)
@@ -208,7 +186,7 @@ Definition looper := 0.
 (* end hide *)
 
 (**
-(** So far, it looks like co-inductive types might be a magic bullet, allowing us to import all of the Haskeller's usual tricks.  However, there are important restrictions that are dual to the restrictions on the use of inductive types.  Fixpoints _consume_ values of inductive types, with restrictions on which _arguments_ may be passed in recursive calls.  Dually, co-fixpoints _produce_ values of co-inductive types, with restrictions on what may be done with the _results_ of co-recursive calls.
+(* So far, it looks like co-inductive types might be a magic bullet, allowing us to import all of the Haskeller's usual tricks.  However, there are important restrictions that are dual to the restrictions on the use of inductive types.  Fixpoints _consume_ values of inductive types, with restrictions on which _arguments_ may be passed in recursive calls.  Dually, co-fixpoints _produce_ values of co-inductive types, with restrictions on what may be done with the _results_ of co-recursive calls.
 
 The restriction for co-inductive types shows up as the%\index{guardedness condition}% _guardedness condition_.  First, consider this stream definition, which would be legal in Haskell.
 [[
@@ -227,20 +205,14 @@ unguarded recursive call in "looper"
 The rule we have run afoul of here is that _every co-recursive call must be guarded by a constructor_; that is, every co-recursive call must be a direct argument to a constructor of the co-inductive type we are generating.  It is a good thing that this rule is enforced.  If the definition of [looper] were accepted, our [approx] function would run forever when passed [looper], and we would have fallen into inconsistency.
 
 Some familiar functions are easy to write in co-recursive fashion. *)
-*)
-(**
-これまでの説明では，
-余帰納型はまるで魔法の仕組みのようであり，
-Haskellユーザが使っていたすべての技法がCoqでも使えると感じてしまうでしょう．
-しかしながら，帰納型を利用するときの制約と双対となる重要な制約があります．
-[Fixpoint]によって定義される関数が帰納型の値を「消費」するとき，
-再帰呼び出しの際に渡される「引数」に制約があります．
-これとは双対的に，
-[CoFixpoint]によって定義される関数が余帰納型の値を「生産」するとき，
-余再帰呼び出しの「結果」の使われ方に制約があるのです．
 
-この余帰納型に対する制約は%\index{ガード条件}%「ガード条件」として現れます．
-まず，Haskellでは問題なく記述できる次の定義を考えましょう．
+ここまでの説明だと、余帰納型はHaskellのあらゆるトリックをCoqでも使えるようにする魔法の弾丸に思えるかもしれません。
+しかし、帰納型を利用するときに制約があるように、余帰納型にも重要な制約があります。
+帰納型の値を[Fixpoint]が_消費_するときは、再帰呼び出しにおいて_引数_が渡される可能性があるという制約があります。
+余帰納型の値を[CoFixpoint]が_生産_するときは、余再帰呼び出しの_結果_の使われ方について制約があるのです。
+
+この余帰納型に対する制約は%\index{ガード条件}%_ガード条件_として現れます。
+まず、Haskellでは問題なく記述できる次の定義がCoqではエラーになることを確認しましょう。
 
 [[
 CoFixpoint looper : stream nat := looper.
@@ -255,14 +227,12 @@ looper : stream nat
 unguarded recursive call in "looper"
 >>
 
-ここで違反している規則は「すべての余再帰呼び出しは構成子によってガードされていなければならない」というものです．
-つまり，すべての余再帰呼び出しは，作りたい余帰納型の構成子の直接的な引数になっていなければなりません．
-この規則を強要するのはよいことです．
-もし，この[looper]の定義が許されるとすると，
-[approx]関数の引数として[looper]を渡すことで無限に実行されてしまい，
-矛盾に陥ってしまうでしょう．
+ここでは「すべての余再帰呼び出しは構成子によってガードされていなければならない」という規則に衝突しています。
+この規則によれば、すべての余再帰呼び出しは、作りたい余帰納型の構成子の直接的な引数になっていなければなりません。
+これが規則として強制されているのは望ましいことです。
+もしこの[looper]の定義が許されていたら、先に定義した[approx]関数の引数として[looper]を渡すと無限に実行されてしまい、矛盾に陥るでしょう。
 
-お馴染みの関数を余再帰的に書くことも簡単です．
+お馴染みの関数の中には、余再帰で簡単に書けるものもあります。
 *)
 
 Section map.
@@ -282,22 +252,18 @@ Definition filter := 0.
 (* end hide *)
 
 (**
-(** This code is a literal copy of that for the list [map] function, with the [nil] case removed and [Fixpoint] changed to [CoFixpoint].  Many other standard functions on lazy data structures can be implemented just as easily.  Some, like [filter], cannot be implemented.  Since the predicate passed to [filter] may reject every element of the stream, we cannot satisfy the guardedness condition.
+(* This code is a literal copy of that for the list [map] function, with the [nil] case removed and [Fixpoint] changed to [CoFixpoint].  Many other standard functions on lazy data structures can be implemented just as easily.  Some, like [filter], cannot be implemented.  Since the predicate passed to [filter] may reject every element of the stream, we cannot satisfy the guardedness condition.
 
    The implications of the condition can be subtle.  To illustrate how, we start off with another co-recursive function definition that _is_ legal.  The function [interleave] takes two streams and produces a new stream that alternates between their elements. *)
-*)
-(** 
-このコードはリストに対する[map]関数をほぼそのまま写したもので，
-[nil]の場合を削除して[Fixpoint]を[CoFixpoint]に変えただけです．
-ストリームを扱う他の多くの標準的な関数も簡単に定義できます．
-一方，[filter]のように定義できない関数もあります．
-[filter]関数に渡される述語がストリームのすべての要素をふるい落としてしまう可能性もあるので，
-ガード条件が満たされません．
 
-この条件の扱いには慎重さを必要とすることがあります．
-それを確認するために，まずは「合法」とされる別の余再帰関数の定義を見てみましょう．
-次の[interleave]関数は2つのストリームを入力として，
-それらの要素を交互に並べた1つのストリームを返す関数です．
+このコードは、リストに対する[map]関数をほぼそのまま引き写したもので、[nil]の場合を削除して[Fixpoint]を[CoFixpoint]に変えただけです。
+他の多くの標準的な関数も、遅延データ構造に対するものとして、同じように簡単に実装できます。
+中には、[filter]のように、実装できない関数もあります。
+[filter]関数に渡される述語は、ストリームのすべての要素をふるい落としてしまう可能性があるので、ガード条件が満たされないからです。
+
+ガード条件は微妙な含みを持つことがあります。
+それを確認するために、まずはガード条件に適合する別の余再帰関数の定義を見てみましょう。
+次の[interleave]関数は、二つのストリームを入力として、それらの要素を交互に並べた一つのストリームを返す関数です。
 *)
 
 Section interleave.
@@ -309,13 +275,11 @@ Section interleave.
     end.
 End interleave.
 
-(**
-(** Now say we want to write a weird stuttering version of [map] that repeats elements in a particular way, based on interleaving. *)
-*)
-(**
-ここで，ちょっと変わった[map]関数を考えてみましょう．
-[interleave]関数を使って
-特定の方法で要素を繰り返しながらストリームを生成する関数です．
+(*
+(* Now say we want to write a weird stuttering version of [map] that repeats elements in a particular way, based on interleaving. *)
+
+ここで、繰り返しを伴うちょっと変わった[map]関数を考えてみましょう。
+[interleave]関数を使って要素を繰り返しながらストリームを生成するという関数です。
 *)
 
 Section map'.
@@ -324,36 +288,30 @@ Section map'.
  
 (* begin thide *)
 (**
-  (** %\vspace{-.15in}%[[
+  [[
   CoFixpoint map' (s : stream A) : stream B :=
     match s with
       | Cons h t => interleave (Cons (f h) (map' t)) (Cons (f h) (map' t))
     end.
-    ]]
-    %\vspace{-.15in}%We get another error message about an unguarded recursive call. *)
+  ]]
+(* end thide *)
+
+(* We get another error message about an unguarded recursive call. *)
+
+上記の入力すると、再帰呼出しがガード条件に違反していることを指摘するエラーメッセージが表示されます。
 *)
-  (** %\vspace{-.15in}%[[
-  CoFixpoint map' (s : stream A) : stream B :=
-    match s with
-      | Cons h t => interleave (Cons (f h) (map' t)) (Cons (f h) (map' t))
-    end.
-    ]]
-    %\vspace{-.15in}%これを入力すると，再帰呼出しがガード条件に違反していることを指摘するエラーメッセージが表示されます． *)
 
 End map'.
 
 (** 
-(** What is going wrong here?  Imagine that, instead of [interleave], we had called some other, less well-behaved function on streams.  Here is one simpler example demonstrating the essential pitfall.  We start by defining a standard function for taking the tail of a stream.  Since streams are infinite, this operation is total. *)
+(* What is going wrong here?  Imagine that, instead of [interleave], we had called some other, less well-behaved function on streams.  Here is one simpler example demonstrating the essential pitfall.  We start by defining a standard function for taking the tail of a stream.  Since streams are infinite, this operation is total. *)
 *)
 (**
 どこが間違っていたのでしょう？
-仮に，[interleave]関数の代わりに
-ストリーム上の別の不適切な関数が呼ばれていた場合を考えてみましょう．
-このような関数呼出しが本質的な危険となるということを説明するために，
-更に簡単な例を用意しました．
-まずはストリームに対する標準的な関数である[tail]関数を定義します．
-リストと違ってストリームの長さは常に無限であるため，
-この関数は全域関数です．
+仮に、[interleave]関数の代わりにストリームに対するやや不適切な関数が呼ばれていた場合を考えてみましょう。
+これから、そのような関数呼出しが本質的に危険であることを示す簡単な例を示します。
+まずはストリームに対する標準的な関数である[tail]関数を定義します。
+リストと違ってストリームは常に無限の長さなので、この関数は全域関数です。
 *)
 
 Definition tl A (s : stream A) : stream A :=
@@ -362,7 +320,7 @@ Definition tl A (s : stream A) : stream A :=
   end.
 
 (**
-(** Coq rejects the following definition that uses [tl].
+(* Coq rejects the following definition that uses [tl].
 [[
 CoFixpoint bad : stream nat := tl (Cons 0 bad).
 ]]
@@ -383,101 +341,72 @@ CoFixpoint map' (s : stream A) : stream B :=
   end.
 ]]
 Clearly in this case the [map'] calls are not immediate arguments to constructors, so we violate the guardedness condition. *)
-*)
-(**
-この[tl]関数を使って次のようなストリームを定義しようとしても，
-Coqは受け入れてくれません．
+
+この[tl]関数を使って次のようなストリームを定義しようとしても、Coqは受け入れてくれません。
+
 [[
 CoFixpoint bad : stream nat := tl (Cons 0 bad).
 ]]
 
-仮にCoqがこの定義を受け入れたとして，
-[approx bad 1]という式を評価しようとした場合を考えましょう．
-この式は，[bad]ストリームの最初の要素を取り出そうとしています．
-しかしながら，この[bad]の定義が問題を引き起こすことは容易に想像できます．
-[tl]関数の定義を展開すると，
-[bad]が結局[bad]自身と等しくなるように定義されていることがわかります．
-もちろん，
-[bad]が[bad]と等しいというだけの定義では唯一の値を特定することはできないので，
-Gallina簡約の決定性に反する結果となります．
+仮にCoqがこの定義を受け入れたとして、[approx bad 1]という式がどう評価されるか考えてみてください。
+この式は[bad]ストリームの最初の要素を取り出そうとしています。
+ところが[bad]の定義は、容易にわかるように、ある意味で「疑問を投げかける」ようなものです。
+[tl]関数の定義を読み解けば、結局のところ「自分自身と等しくなるものとして[bad]を定義する」としか言っていません。
+当然、[bad]が[bad]と等しいというだけの定義では唯一の値を特定できず、これはGallinaにおける簡約の決定性に反します。
 
-Coqにおける余再帰定義の完全な規則には，
-基本的なガード条件だけではなく，
-余再帰呼出しがどこに現れるべきかという制約もあります．
-具体的には，
-余再帰呼出しは構成子の直接の引数でなければならず，
-その外側には「別の構成子」「[fun]」「[match]式」以外が現れてはいけません．
-先ほどの[bad]の定義では，余再帰呼出しの外側に[tl]の関数呼出しがあり，
-[map']の定義では，
-余再帰呼出しの外側に[interleave]の関数呼出しがあるため，
-どちらもエラーになります．
+余再帰的定義についてのCoqの規則では、基本的なガード条件だけではなく、余再帰呼び出しが許可される場所についても制約があります。
+具体的には、余再帰呼び出しは構成子の直接の引数でなければならず、「別の構成子の呼び出し」や「[fun]式」や「[match]式」の内側でのみ入れ子にできます。
+先ほどの[bad]の定義では、[tl]の関数呼び出しの内側で余再帰呼び出しをしているので、エラーを引き起こします。
+[map']の定義では、[interleave]の関数呼び出しの内側で余再帰呼び出しをしているので、やはりエラーを引き起こします。
 
-Coqには，構文的な制約を緩和するために，
-項を簡約してからガード条件を検査するという手法を採用しています．
-たとえば，余再帰的定義の外側で恒等関数が呼び出されていたとしてもガード条件には影響しません．
-しかしながら，
-それ以外の場合には項の簡約によってなぜ定義に問題があるのかがよくわかります．
-先ほどの[bad]の例において[tl]の定義をインライン展開してみましょう．
-
+これらの制約は、Coqでは項が簡約されてからガード条件が検査されることから、ユーザからすれば多少は気楽に扱えます。
+たとえば、余分な恒等関数の呼び出しを付け足しても余再帰的定義の展開は可能であり、この変更でもガード条件は依然として満たします。
+とはいえ、項を簡約することで定義の何が問題かが明らかになるケースもあります。
+[bad]の定義中で[tl]をインライン展開した次の定義を考えてみてください。
 [[
 CoFixpoint bad : stream nat := bad.
 ]]
-これは以前の[looper]の例と同じで適切な定義ではありません．
-エラーになってしまった[map']の定義においても同様にインライン展開すると
-次のようになります．
+これは先に定義がエラーになった[looper]とまったく同じです。
+[map']の定義で何が問題だったかも同様のインライン展開によって見えてきます。
 [[
 CoFixpoint map' (s : stream A) : stream B :=
   match s with
     | Cons h t => Cons (f h) (Cons (f h) (interleave (map' t) (map' t)))
   end.
 ]]
-この場合は明らかに[map']関数の呼出しが構成子の直接の引数になっていないため，
-ガード条件に違反していることがわかります．
+上記を見ると、明らかに[map']の呼び出しが構成子の直接の引数になっていないことがわかります。したがってガード条件を満たさないのです。
 *)
 (* end thide *)
 
 (**
-(** A more interesting question is why that condition is the right one.  We can make an intuitive argument that the original [map'] definition is perfectly reasonable and denotes a well-understood transformation on streams, such that every output would behave properly with [approx].  The guardedness condition is an example of a syntactic check for%\index{productivity}% _productivity_ of co-recursive definitions.  A productive definition can be thought of as one whose outputs can be forced in finite time to any finite approximation level, as with [approx].  If we replaced the guardedness condition with more involved checks, we might be able to detect and allow a broader range of productive definitions.  However, mistakes in these checks could cause inconsistency, and programmers would need to understand the new, more complex checks.  Coq's design strikes a balance between consistency and simplicity with its choice of guard condition, though we can imagine other worthwhile balances being struck, too. *)
-*)
-(**
-興味深いのはなぜこの条件が正しいのかということです．
-直観的には最初に示した[map']関数の定義はとても自然で，
-ストリーム上の変換としても理解しやすいものですし，
-[approx]に渡しても適切に実行されそうに見えるでしょう．
-Coqにおけるガード条件は，
-余再帰的定義の「生産的であるか」%\index{productivity}%を構文的に検査しているだけです．
-生産的な定義とは，[approx]のような関数を使ったどんな有限の近似においても
-有限の時間で出力が得られるものであると考えてかまいません．
-ガード条件にもっと複雑な検査を追加すれば，
-より広い範囲の生産的な定義を扱うこともできるかもしれません．
-しかしながら，
-そのような検査でのエラーは一貫性のないものになるかもしれませんし，
-プログラマがその新しい複雑な検査を理解する必要が出てきてしまいます．
-現在のCoqの設計では，
-一貫性とわかりやすさのバランスを重視してガード条件を定めていますし，
-他にも抑えておきたい重要なバランスもあるでしょう．
+(* A more interesting question is why that condition is the right one.  We can make an intuitive argument that the original [map'] definition is perfectly reasonable and denotes a well-understood transformation on streams, such that every output would behave properly with [approx].  The guardedness condition is an example of a syntactic check for%\index{productivity}% _productivity_ of co-recursive definitions.  A productive definition can be thought of as one whose outputs can be forced in finite time to any finite approximation level, as with [approx].  If we replaced the guardedness condition with more involved checks, we might be able to detect and allow a broader range of productive definitions.  However, mistakes in these checks could cause inconsistency, and programmers would need to understand the new, more complex checks.  Coq's design strikes a balance between consistency and simplicity with its choice of guard condition, though we can imagine other worthwhile balances being struck, too. *)
+
+そもそもガード条件は検査方法として適切なのでしょうか。
+直観的には、最初に示した[map']の定義は実に理にかなっていて、ストリームに対する変換をうまく記述できているように思えますし、その結果を[approx]に渡せば適切に実行されそうです。
+ガード条件は、余再帰的定義の_生成性_%\index{生成性}%（productivity）を構文的に検査する方法のひとつにすぎません。
+ある定義は、有限の時間で（[approx]を使って）任意のレベルで出力結果を有限に近似できるなら、生成的（productive）であると言えます。
+ガード条件の代わりに、もっと複雑な方法で検査すれば、より広い範囲の定義について生成的であるかどうか確かめられるかもしれません。
+しかしながら、そのような検査で見逃した定義によって矛盾が生じる可能性もあり、そのためプログラマは、その新しくて一層複雑な検査について理解する必要が生じるでしょう。
+他にも考慮すべき点はあり得ますが、現在のCoqの設計では無矛盾性と簡潔さのバランスを重視してガード条件を採用しているのです。
 *)
 
 (**
-(** * Infinite Proofs *)
+(* * Infinite Proofs *)
+* 証明で無限を扱う
 *)
-(** * 無限の大きさをもつ証明 *)
 
 (**
-(** Let us say we want to give two different definitions of a stream of all ones, and then we want to prove that they are equivalent. *)
-*)
-(**
-すべての要素が1であるストリームを異なる二つの方法で定義してみましょう．
-あとでこれらが等しいことを証明します．
+(* Let us say we want to give two different definitions of a stream of all ones, and then we want to prove that they are equivalent. *)
+
+すべての要素が1であるストリームを異なる二つの方法で定義し、両者の等価性を証明したいとします。
 *)
 
 CoFixpoint ones : stream nat := Cons 1 ones.
 Definition ones' := map S zeroes.
 
 (**
-(** The obvious statement of the equality is this: *)
-*)
-(** 単純に考えればこれらが等しいことを示す言明は次の通りです．*)
+(* The obvious statement of the equality is this: *)
+両者の等価性は次のような明らかな言明で表明できます。
 
 Theorem ones_eq : ones = ones'.
 
@@ -488,39 +417,28 @@ Definition foo := @eq.
 (* end hide *)
 
 (**
-  (** However, faced with the initial subgoal, it is not at all clear how this theorem can be proved.  In fact, it is unprovable.  The [eq] predicate that we use is fundamentally limited to equalities that can be demonstrated by finite, syntactic arguments.  To prove this equivalence, we will need to introduce a new relation. *)
-*)
-  (**
-しかしながら，
-最初のゴールを見ても
-この定理をどう証明すればいいのか全くわかりません．
-実際，この言明は証明できません．
-ここで使われている[eq]という述語は基本的に，
-有限回の構文的な比較によって証明できるような等価性に限定されています．
-ストリームのような値の等価性を示すには，新たな関係を導入する必要があるのです．
+  (* However, faced with the initial subgoal, it is not at all clear how this theorem can be proved.  In fact, it is unprovable.  The [eq] predicate that we use is fundamentally limited to equalities that can be demonstrated by finite, syntactic arguments.  To prove this equivalence, we will need to introduce a new relation. *)
+
+しかしながら、最初のサブゴールを見ても、この定理をどうやって証明すればいいのかまったくわかりません。
+実を言うと、この言明は証明できないのです。
+[eq]という述語が使えるのは、基本的に有限回の構文的な比較によって証明できるような等価性に限定されています。
+この例における等価性を示すには新たな関係を導入する必要があるのです。
 *)
 (* begin thide *)
 
 Abort.
 
 (**
-(** Co-inductive datatypes make sense by analogy from Haskell.  What we need now is a _co-inductive proposition_.  That is, we want to define a proposition whose proofs may be infinite, subject to the guardedness condition.  The idea of infinite proofs does not show up in usual mathematics, but it can be very useful (unsurprisingly) for reasoning about infinite data structures.  Besides examples from Haskell, infinite data and proofs will also turn out to be useful for modelling inherently infinite mathematical objects, like program executions.
+(* Co-inductive datatypes make sense by analogy from Haskell.  What we need now is a _co-inductive proposition_.  That is, we want to define a proposition whose proofs may be infinite, subject to the guardedness condition.  The idea of infinite proofs does not show up in usual mathematics, but it can be very useful (unsurprisingly) for reasoning about infinite data structures.  Besides examples from Haskell, infinite data and proofs will also turn out to be useful for modelling inherently infinite mathematical objects, like program executions.
 
 We are ready for our first %\index{co-inductive predicates}%co-inductive predicate. *)
-*)
-(**
-余帰納的データ型はHaskellとの対比によって理解できます．
-いま必要なのは「余帰納的命題」です．
-つまり，
-ガード条件に従って構成された無限の大きさになりうる証明をもつような命題を
-定義する必要があるのです．
-この考え方は通常の数学で出てくることはありませんが，
-無限の大きさをもつ構造を考えるためには（当然ながら）とても有用です．
-Haskellの例の他にも，無限の大きさをもつデータや証明は，
-プログラム実行などの
-本質的に無限の大きさをもつ数学的対象を扱う際にもにも有用であることがわかるでしょう．
 
-%\index{余帰納的述語}%余帰納的述語の最初の例がこちらです．
+余帰納的なデータ型はHaskellからの類推で説明できますが、ここで必要なのは_余帰納的な命題_です。
+つまり、その証明が無限になりうるような命題を、ガード条件を満たして定義できる必要があります。
+「証明が無限になりうる」というのは、通常の数学には登場しない概念ですが、無限を表すデータ構造についての推論では（当然ながら）とても有用です。
+無限のデータや証明は、Haskellの例に限らず、プログラム実行のような本来的に無限であるような数学的対象のモデル化では有用なのです。
+
+%\index{余帰納的な述語}%余帰納的な述語の最初の例を見てみましょう。
 *)
 
 Section stream_eq.
@@ -533,51 +451,43 @@ Section stream_eq.
 End stream_eq.
 
 (**
-(** We say that two streams are equal if and only if they have the same heads and their tails are equal.  We use the normal finite-syntactic equality for the heads, and we refer to our new equality recursively for the tails.
+(* We say that two streams are equal if and only if they have the same heads and their tails are equal.  We use the normal finite-syntactic equality for the heads, and we refer to our new equality recursively for the tails.
 
 We can try restating the theorem with [stream_eq]. *)
-*)
-(**
-二つのストリームが等しいということを，
-先頭が同じで残りのストリームが等しいと定義します．
-先頭は通常の有限回の構文的な比較による等価性を使い，
-残りのストリームは新たに定義している等価性を再帰的に使います．
 
-それでは，
-当初の目標だった等式について
-[stream_eq]を使った定理とし，
-改めて証明してみましょう．
+上記では二つのストリームの等価性を、「先頭が同一で、残りのストリームが等価な場合、かつその場合に限る」と定義しています。
+先頭については、通常の有限な構文上の等価性で比較し、残りのストリームについては、新たな等価性の定義を再帰的に用いています。
+
+[stream_eq]を使った当初の等式を改めて証明してみましょう。
 *)
 
 Theorem ones_eq : stream_eq ones ones'.
-(**
-  (** Coq does not support tactical co-inductive proofs as well as it supports tactical inductive proofs.  The usual starting point is the [cofix] tactic, which asks to structure this proof as a co-fixpoint. *)
-*)
-  (**
-帰納的証明のときとは異なり，
-Coqには余帰納的証明を直接支援するタクティックが提供されていません．
-通常最初に使うタクティックは[cofix]で，
-このタクティックは余不動点として証明を構成するためのものです．
+(*
+  (* Coq does not support tactical co-inductive proofs as well as it supports tactical inductive proofs.  The usual starting point is the [cofix] tactic, which asks to structure this proof as a co-fixpoint. *)
+
+帰納的証明ではタクティクによる支援が得られましたが、余帰納的な証明を直接支援するタクティクはCoqでは提供されていません。
+通常、まずは[cofix]タクティクを使います。このタクティクは、証明を余不動点（co-fixpoint）として構成するように要請するものです。
 *)
 
   cofix ones_eq.
-(** [[
+(** <<
   ones_eq : stream_eq ones ones'
   ============================
    stream_eq ones ones'
- 
-   ]]
-
-   なんだか思った以上に簡単に証明ができそうですね！
+  >>
+   (* It looks like this proof might be easier than we expected. *)
+   意外と簡単に証明できそうです。
 *)
 
   assumption.
-(*
+
   (** <<
 Proof completed.
 >>
 
-  Unfortunately, we are due for some disappointment in our victory lap.
+(* Unfortunately, we are due for some disappointment in our victory lap. *)
+  残念ながら、証明終了とともに待っているのは失望です。
+
   [[
 Qed.
 ]]
@@ -592,7 +502,7 @@ ones_eq : stream_eq ones ones'
 unguarded recursive call in "ones_eq"
 >>
 
-Via the Curry-Howard correspondence, the same guardedness condition applies to our co-inductive proofs as to our co-inductive data structures.  We should be grateful that this proof is rejected, because, if it were not, the same proof structure could be used to prove any co-inductive theorem vacuously, by direct appeal to itself!
+(* Via the Curry-Howard correspondence, the same guardedness condition applies to our co-inductive proofs as to our co-inductive data structures.  We should be grateful that this proof is rejected, because, if it were not, the same proof structure could be used to prove any co-inductive theorem vacuously, by direct appeal to itself!
 
 Thinking about how Coq would generate a proof term from the proof script above, we see that the problem is that we are violating the guardedness condition.  During our proofs, Coq can help us check whether we have yet gone wrong in this way.  We can run the command [Guarded] in any context to see if it is possible to finish the proof in a way that will yield a properly guarded proof term.%\index{Vernacular commands!Guarded}%
      [[
@@ -602,77 +512,46 @@ Guarded.
      Running [Guarded] here gives us the same error message that we got when we tried to run [Qed].  In larger proofs, [Guarded] can be helpful in detecting problems _before_ we think we are ready to run [Qed].
      
      We need to start the co-induction by applying [stream_eq]'s constructor.  To do that, we need to know that both arguments to the predicate are [Cons]es.  Informally, this is trivial, but [simpl] is not able to help us. *)
-*)
-  (** <<
-Proof completed.
->>
 
-  残念なことに，証明終了のウイニングランでは失望が待っています．
-  [[
-Qed.
-]]
+Curry-Howard対応を考慮すれば、余帰納的なデータ構造に対するガード条件と同じものは、余帰納的な証明にも適用されます。
+仮にこの証明が通ってしまったら、同じような証明手順であらゆる余帰納的な定理が証明できてしまうので、上記の証明が受け入れられないのはむしろ歓迎すべきことでしょう。
 
-<<
-Error:
-Recursive definition of ones_eq is ill-formed.
-
-In environment
-ones_eq : stream_eq ones ones'
-
-unguarded recursive call in "ones_eq"
->>
-
-カリー・ハワード同型対応を考慮すれば，余帰納的データ構造に対するガード条件は余帰納的証明にも適用されるはずです．
-上記の証明が受け入れられないのはむしろ歓迎すべきことです．
-なぜなら，仮にこの証明が通ってしまうとしたら，
-同じような証明手順によってあらゆる余帰納的な定理が証明できてしまうからです．
-
-この証明手順からどのように証明項が生成されるかを考えてみれば，
-ガード条件に違反しようとしていることが問題であることがわかります．
-Coqでは，証明の途中に，ガード条件に反するようなおかしな証明をしていないかどうか検査する機能が提供されています．
-[[Guarded]]コマンドを使うことで，
-適切にガードされた証明項を作るように証明を終えることができるかどうかを
-いつでも確認することができます%\index{Vernacular commands!Guarded}%．
+Coqがどうやって上記の証明のスクリプトから証明項を生成するかを考えてみると、ガード条件に違反していることが問題であるとわかります。
+Coqには、ユーザが証明の途中でガード条件を満たさないことをやっていないか確認する機能があります。
+%\index{Vernacular commands!Guarded}%[Guarded]コマンドを使えば、適切にガードされた証明項が生成される形で証明の完了を迎えられるかどうかをいつでも確認できるのです。
 
      [[
 Guarded.
 ]]
 
-ここで [Guarded] を使うと [Qed] で証明を終えようとしたときと同じエラーメッセージが得られます． もっと大きな証明をするときには [Guarded] コマンドは有用で，
-[Qed] で証明が終えられる状態であるかを考える前に問題を検出できます．
+ここで[Guarded]を使うと、[Qed]で証明を終えようとしたときと同じエラーメッセージが得られます。
+もっと大きな証明では、証明を[Qed]で終える準備ができたかを考える_前_に問題を確認するため、[Guarded]コマンドが便利に使えます。
 
-この証明では，まず [stream_eq] 構成子の規則を適用することによって余帰納的証明を始める必要があります．そのためには，[stream_eq]の2つの引数が[Cons]の形であること知っておかないといけません．それは直感的には当たり前のことですが，[simpl]タクティクは何の役にも立ちません．
+例に戻りましょう。余帰納的な証明を始めるには、まず[stream_eq]構成子の規則を適用する必要があります。
+そのためには、[stream_eq]の二つの引数が[Cons]されたものであることを知っている必要があります。
+直感的には当たり前ですが、[simpl]タクティクは何の役にも立ちません。
 *)
 
   Undo.
   simpl.
 (*
-  (** [[
+  (** <<
   ones_eq : stream_eq ones ones'
   ============================
    stream_eq ones ones'
- 
-   ]]
+  >>
 
-   It turns out that we are best served by proving an auxiliary lemma. *)
-*)
-  (** [[
-  ones_eq : stream_eq ones ones'
-  ============================
-   stream_eq ones ones'
- 
-   ]]
+(* It turns out that we are best served by proving an auxiliary lemma. *)
 
-   これを解決するために，あらかじめ補題を1つ証明しておくのが最善の方法であることがわかります．
+まずは補題を証明しておくことにしましょう。
 *)
 
 Abort.
 
-(*
-(** First, we need to define a function that seems pointless at first glance. *)
-*)
 (**
-まず，一見何の意味もない関数の定義が必要です．
+(* First, we need to define a function that seems pointless at first glance. *)
+
+まず、一見すると何の意味もない関数の定義が必要です。
 *)
 
 Definition frob A (s : stream A) : stream A :=
@@ -680,59 +559,44 @@ Definition frob A (s : stream A) : stream A :=
     | Cons h t => Cons h t
   end.
 
-(*
-(** Next, we need to prove a theorem that seems equally pointless. *)
-*)
-(** 
-次に，同じくらい意味のなさそうな定理を証明する必要があります．
+(**
+(* Next, we need to prove a theorem that seems equally pointless. *)
+次に、同じくらい意味のなさそうな定理を証明する必要があります。
 *)
 
 Theorem frob_eq : forall A (s : stream A), s = frob s.
   destruct s; reflexivity.
 Qed.
 
-(*
-(** But, miraculously, this theorem turns out to be just what we needed. *)
-*)
 (**
-しかしながら，奇跡的なことに，この定理が紛れもなく求めていたものであることがわかります．
+(* But, miraculously, this theorem turns out to be just what we needed. *)
+
+しかし不思議なことに、この定理こそが紛れもなく求めていたものです。
 *)
 
 Theorem ones_eq : stream_eq ones ones'.
   cofix ones_eq.
 
-(*
-  (** We can use the theorem to rewrite the two streams. *)
-*)
-  (**
-この定理を使うことで2つのストリームを書き換えることができます．
+(**
+  (* We can use the theorem to rewrite the two streams. *)
+
+この定理を使って二つのストリームを書き換えることができます。
 *)
 
   rewrite (frob_eq ones).
   rewrite (frob_eq ones').
-(*
-  (** [[
+  (** <<
   ones_eq : stream_eq ones ones'
   ============================
    stream_eq (frob ones) (frob ones')
- 
-   ]]
+  >>
 
-   Now [simpl] is able to reduce the streams. *)
-*)
-  (** [[
-  ones_eq : stream_eq ones ones'
-  ============================
-   stream_eq (frob ones) (frob ones')
- 
-   ]]
-
-   今なら [simpl] を使って2つのストリームの式を簡約することができます．
+(*  Now [simpl] is able to reduce the streams. *)
+こう書き換えれば、[simpl]を使って二つのストリームの式を簡約できます。
 *)
 
   simpl.
-(*
-  (** [[
+  (** <<
   ones_eq : stream_eq ones ones'
   ============================
    stream_eq (Cons 1 ones)
@@ -741,28 +605,16 @@ Theorem ones_eq : stream_eq ones ones'.
             match s with
             | Cons h t => Cons (S h) (map t)
             end) zeroes))
- 
-            ]]
+  >>
 
-  Note the [cofix] notation for anonymous co-recursion, which is analogous to the [fix] notation we have already seen for recursion.  Since we have exposed the [Cons] structure of each stream, we can apply the constructor of [stream_eq]. *)
+(* Note the [cofix] notation for anonymous co-recursion, which is analogous to the [fix] notation we have already seen for recursion.  Since we have exposed the [Cons] structure of each stream, we can apply the constructor of [stream_eq]. *)
+
+上記に出てくる[cofix]という記法は、無名の余再帰を表しています。これは、再帰に出てきた[fix]という記法に対応するものです。
+それぞれのストリーム式が[Cons]の形になったので、[stream_eq]の構成子の規則が適用できます。
 *)
-  (** [[
-  ones_eq : stream_eq ones ones'
-  ============================
-   stream_eq (Cons 1 ones)
-     (Cons 1
-        ((cofix map (s : stream nat) : stream nat :=
-            match s with
-            | Cons h t => Cons (S h) (map t)
-            end) zeroes))
- 
-            ]]
-
-  この[cofix]記法は無名余再帰を表していますが，すでに見た再帰を表すための[fix]記法とよく似ています． 今それぞれのストリーム式が [Cons] の形になったので，[stream_eq] 構成子の規則を適用することができます．*)
 
   constructor.
-(*
-  (** [[
+  (** <<
   ones_eq : stream_eq ones ones'
   ============================
    stream_eq ones
@@ -770,38 +622,26 @@ Theorem ones_eq : stream_eq ones ones'.
          match s with
          | Cons h t => Cons (S h) (map t)
          end) zeroes)
- 
-         ]]
+  >>
+  
+  (* Now, modulo unfolding of the definition of [map], we have matched our assumption. *)
 
-  Now, modulo unfolding of the definition of [map], we have matched our assumption. *)
-*)
-  (** [[
-  ones_eq : stream_eq ones ones'
-  ============================
-   stream_eq ones
-     ((cofix map (s : stream nat) : stream nat :=
-         match s with
-         | Cons h t => Cons (S h) (map t)
-         end) zeroes)
- 
-         ]]
+[map]の定義が展開されているか否かの違いを無視すれば、この帰結は仮定と一致します。
 
-  ここで，[map]の定義が展開されているかいないかを無視すれば，この帰結は仮定と一致します．
 *)
 
   assumption.
 Qed.
 
-(*
-(** Why did this silly-looking trick help?  The answer has to do with the constraints placed on Coq's evaluation rules by the need for termination.  The [cofix]-related restriction that foiled our first attempt at using [simpl] is dual to a restriction for [fix].  In particular, an application of an anonymous [fix] only reduces when the top-level structure of the recursive argument is known.  Otherwise, we would be unfolding the recursive definition ad infinitum.
+(**
+(* Why did this silly-looking trick help?  The answer has to do with the constraints placed on Coq's evaluation rules by the need for termination.  The [cofix]-related restriction that foiled our first attempt at using [simpl] is dual to a restriction for [fix].  In particular, an application of an anonymous [fix] only reduces when the top-level structure of the recursive argument is known.  Otherwise, we would be unfolding the recursive definition ad infinitum.
 
    Fixpoints only reduce when enough is known about the _definitions_ of their arguments.  Dually, co-fixpoints only reduce when enough is known about _how their results will be used_.  In particular, a [cofix] is only expanded when it is the discriminee of a [match].  Rewriting with our superficially silly lemma wrapped new [match]es around the two [cofix]es, triggering reduction.
 
    If [cofix]es reduced haphazardly, it would be easy to run into infinite loops in evaluation, since we are, after all, building infinite objects.
 
    One common source of difficulty with co-inductive proofs is bad interaction with standard Coq automation machinery.  If we try to prove [ones_eq'] with automation, like we have in previous inductive proofs, we get an invalid proof. *)
-*)
-(** 
+
 こんな無意味に見える小技が役に立つのはなぜでしょうか．
 その答えは，停止性のためにCoqの評価規則に課された制約と関係しています．
 上の例で最初に[simpl]タクティクが働かなかったときの[cofix]の制約は，
@@ -854,7 +694,7 @@ Abort.
 
 余帰納法で証明する場合には常に自動証明に注意を払わなければならないのでしょうか．
 帰納法でも双対になる同じような罠が存在すると思われますが，
-いわゆる帰納法の原理の中に安全なカリー・ハワード再帰スキームを内包することで，その罠を避けています．大抵の場合は「余帰納法の原理」%\index{余帰納法の原理}%を用いて同じことができることがわかります．それでは，[ones_eq']に対して[induction x; crush]形式で証明する方法を考えてみましょう．
+いわゆる帰納法の原理の中に安全なCurry-Howard再帰スキームを内包することで，その罠を避けています．大抵の場合は「余帰納法の原理」%\index{余帰納法の原理}%を用いて同じことができることがわかります．それでは，[ones_eq']に対して[induction x; crush]形式で証明する方法を考えてみましょう．
 
 帰納的原理は，証明すべき命題を表す述語をパラメータ化した
 「すでにわかっている帰納的事実を受け取る関数」として与えられます．
