@@ -520,7 +520,7 @@ Coqがどうやって上記の証明のスクリプトから証明項を生成�
 Coqには、ユーザが証明の途中でガード条件を満たさないことをやっていないか確認する機能があります。
 %\index{Vernacular commands!Guarded}%[Guarded]コマンドを使えば、適切にガードされた証明項が生成される形で証明の完了を迎えられるかどうかをいつでも確認できるのです。
 
-     [[
+[[
 Guarded.
 ]]
 
@@ -642,41 +642,30 @@ Qed.
 
    One common source of difficulty with co-inductive proofs is bad interaction with standard Coq automation machinery.  If we try to prove [ones_eq'] with automation, like we have in previous inductive proofs, we get an invalid proof. *)
 
-こんな無意味に見える小技が役に立つのはなぜでしょうか．
-その答えは，停止性のためにCoqの評価規則に課された制約と関係しています．
-上の例で最初に[simpl]タクティクが働かなかったときの[cofix]の制約は，
-[fix]に対する制約と双対の関係になっています．
-[fix]で表される無名関数の適用が評価されるのは，
-再帰呼び出しの引数の最も外側の構成子がわかったときだけです．
-そうしないと再帰的な定義が無限に展開されてしまいます．
+この補題は何の役に立ったのでしょうか。
+Coqの評価規則には、停止性にとって必要なことから、いくつかの制約が設けられています。
+[cofix]に対しても制約が設けられており、最初に[simpl]タクティクがうまくいかなかったのはそのためです。
+この[cofix]に対する制約には双対となる[fix]に対する制約があって、これは「無名の[fix]を適用して簡約が起こるのは、再帰的な引数のトップレベルの構造が判明している場合だけ」というものです。
+それ以外の場合に簡約してしまうと、再帰的な定義が無限に展開されることになるので、[fix]にはこのような制約があります。
 
-[fix]による不動点は「引数の定義」が必要なだけわかったときだけ評価されます．
-それとは双対に，
-[cofix]による余不動点は「結果がどう使われるか」が必要なだけわかったときだけ評価されます．
-[cofix]で表される無名関数が展開されるのは，[match]式の引数として与えられたときだけです．
-先ほどの表面的で自明な補題を使って新たな[match]式で2つの[cofix]式を包むことにより，簡約を進めることができます．
+[Fixpoints]は、その引数の_定義_が十分に判明する場合にのみ簡約が起こります。
+それとは双対に[CoFixpoints]は、_その結果がどう使われるか_が十分に判明する場合にのみ簡約が起こります。
+[cofix]について言えば、[match]の場合分けになっている場合にのみ展開されることになります。
+この例では、補題による書き換えで二つの[cofix]が新たな[match]で包まれたことにより、簡約が進んだのです。
 
-最終的に無限の大きさをもつ対象を構成しようとしているので，
-もし[cofix]式が行き当たりばったりに簡約されるとしたら，
-すぐに無限ループに陥ってしまうことでしょう．
+無限の対象を構成しているのに、何の制約もなしに[cofix]が展開されたら、容易に無限ループに陥ってしまうことでしょう。
 
-余帰納的証明の難しさの原因としてよく挙げられるのは，
-標準のCoqの自動証明機構と相性が悪いという点です．
-これまでの帰納的定理の証明と同じような自動証明を[ones'_eq]に対して試みると，
-ガードされていない不適切な証明が得られてしまいます．
-*)
+余帰納的な証明が難しくなる要因のひとつは、Coqが備える標準的な自動化の仕組みとの相性が悪いことです。
+前章で見た帰納的な証明と同じ要領で、[ones_eq]を自動で証明しようと思うと、ガードされていない不適切な証明が得られてしまいます．
 
+[[
 Theorem ones_eq' : stream_eq ones ones'.
   cofix one_eq'; crush.
-  (** %\vspace{-.25in}%[[
   Guarded.
-  ]]
-  %\vspace{-.25in}%
-  *)
 Abort.
+]]
 
-(*
-(** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  A correct proof strategy for a theorem like this usually starts by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with "hiding" the co-inductive hypothesis.
+(* The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  A correct proof strategy for a theorem like this usually starts by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with "hiding" the co-inductive hypothesis.
 
    %\medskip%
 
@@ -685,25 +674,21 @@ Abort.
    An induction principle is parameterized over a predicate characterizing what we mean to prove, _as a function of the inductive fact that we already know_.  Dually, a co-induction principle ought to be parameterized over a predicate characterizing what we mean to prove, _as a function of the arguments to the co-inductive predicate that we are trying to prove_.
 
    To state a useful principle for [stream_eq], it will be useful first to define the stream head function. *)
-*)
-(** 
-標準的な[auto]タクティクは，帰結に一致する仮定があれば，ガード条件に違反するかどうかに関係なく，その仮定を適用してしまいます．
-このような定理を証明する正しい戦略は，まず引数のどれかを[destruct]して場合分けを行い，それぞれの場合について最初に適用できる規則を知るための適切なタクティクを使うことです．あるいは，余帰納的仮定を「隠す」ことで自動証明を進めるという方法もいくつかあります．
 
-   %\medskip%
+標準の[auto]タクティクの仕組みでは、ガード条件を満たさない場合でも、ゴールに合致する仮定があれば適用されます。
+[ones_eq']のような定理を証明する際は、いくつかの変数について[destruct]し、それぞれの場合分けについて独自のタクティクを使って、最初に適用する規則を決めるというのが正しい戦略です。
+他の戦略としては、余帰納的な仮定を「隠す」ことで自動証明を進める手法もいくつかあります。
 
-余帰納法で証明する場合には常に自動証明に注意を払わなければならないのでしょうか．
-帰納法でも双対になる同じような罠が存在すると思われますが，
-いわゆる帰納法の原理の中に安全なCurry-Howard再帰スキームを内包することで，その罠を避けています．大抵の場合は「余帰納法の原理」%\index{余帰納法の原理}%を用いて同じことができることがわかります．それでは，[ones_eq']に対して[induction x; crush]形式で証明する方法を考えてみましょう．
+余帰納法による証明の自動化では、常にこのような注意が必要なのでしょうか。
+双対であることを考えると、帰納法にも同じ罠がありそうに思えます。
+実際、帰納法にも罠があります。その罠を回避するため、名前がついた帰納法の原理の内部に、Curry-Howard対応の安全な再帰スキームを閉じ込めています。
+余帰納法の証明でも、通常は_余帰納法の原理_%\index{余帰納法の原理}%を使って同じことが可能です。
+[ones_eq']を[induction x; crush]で証明できるようになるため、その手法に挑戦してみましょう。
 
-帰納的原理は，証明すべき命題を表す述語をパラメータ化した
-「すでにわかっている帰納的事実を受け取る関数」として与えられます．
-それとは双対に，
-余帰納的原理は，
-証明すべき命題を表す述語をパラメータ化した
-「証明しようとしている余帰納的述語の引数を受け取る関数」として与えられるべきです．
+帰納法の原理は、「既知の帰納的な事実を受け取る関数」であり、その変数が「証明すべき命題を表した述語」です。
+その双対である余帰納の原理は、「証明しようとしている余帰納的な述語に対する引数を受け取る関数」であり、その変数が「証明すべき命題を表す述語」です。
 
-[stream_eq]に対する証明に有用な原理を示すために，ストリームの先頭を取り出す関数を用意しておくと便利です．
+[stream_eq]に関する証明に役立つ余帰納法の原理を示す前に、まずはストリームの先頭を取り出す関数を用意しておきます。
 *)
 
 Definition hd A (s : stream A) : A :=
@@ -711,46 +696,39 @@ Definition hd A (s : stream A) : A :=
     | Cons x _ => x
   end.
 
-(*
-(** Now we enter a section for the co-induction principle, based on %\index{Park's principle}%Park's principle as introduced in a tutorial by Gim%\'%enez%~\cite{IT}%. *)
-*)
 (**
-いよいよ余帰納法の原理を示す[Section]に入ります．
-これは，Gim%\'%enezによるチュートリアル%~\cite{IT}%で紹介されている%\index{Parkの原理}%Parkの原理を基にしています．
+(* Now we enter a section for the co-induction principle, based on %\index{Park's principle}%Park's principle as introduced in a tutorial by Gim%\'%enez%~\cite{IT}%. *)
+
+その上で、余帰納法の原理を示す[Section]に入ります。
+以降の説明は、Gim%\'%enezによるチュートリアル%~\cite{IT}%で紹介されている%\index{Parkの原理}%Parkの原理を基にしたものです。
 *)
 
 Section stream_eq_coind.
   Variable A : Type.
   Variable R : stream A -> stream A -> Prop.
 
-(*
-  (** This relation generalizes the theorem we want to prove, defining a set of pairs of streams that we must eventually prove contains the particular pair we care about. *)
-*)
-  (**
-この関係 [R] は証明したい定理を一般化したものを表し，
-注目している特定のストリーム対が最終的に含まれるように対の集合を定義していきます．
+(**
+  (* This relation generalizes the theorem we want to prove, defining a set of pairs of streams that we must eventually prove contains the particular pair we care about. *)
+  
+  一対のストリームが満たす関係を[R]として、あるストリームの対が[R]に含まれると定義することで証明したい定理を一般化します。
 *)
 
   Hypothesis Cons_case_hd : forall s1 s2, R s1 s2 -> hd s1 = hd s2.
   Hypothesis Cons_case_tl : forall s1 s2, R s1 s2 -> R (tl s1) (tl s2).
 
-(*
-  (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on "[R]-ness" to its tails.  An established technical term for such a relation is%\index{bisimulation}% _bisimulation_. *)
-*)
-  (** 
-この2つの仮定は関係[R]が適切に定義されていることを表します．
-1つめの仮定では，ストリームの先頭が互いに等しいことを強制し，
-2つめの仮定では，ストリーム同士の[R]という関係が後続のストリームに%``%#<i>#遺伝#</i>#%''%することを表しています．
-専門用語では，このような関係は%\index{bisimulation}%「双模倣」と呼ばれます．
+(**
+  (* Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on "[R]-ness" to its tails.  An established technical term for such a relation is%\index{bisimulation}% _bisimulation_. *)
+
+[R]の上手な選び方を特徴づけるのが上記の二つの仮定です。
+これらにより、一対のストリームについて、互いの先頭は等価であり、互いの末尾は「関係[R]を満たす」という性質を持つという意味で「遺伝的」であることが言えています。
+このような関係性は%\index{bisimulation}%「双模倣性」（bisimulation）と呼ばれます。
 *)
 
-(*
-  (** Now it is straightforward to prove the principle, which says that any stream pair in [R] is equal.  The reader may wish to step through the proof script to see what is going on. *)
-*)
-  (** 
-余帰納法の原理を示すのは簡単です．
-その原理の主張は，[R] で関係付けられるストリーム対は必ず [stream_eq] の意味で等しい，というものです．
-この証明スクリプトを順に追いながら何が起こっているかを見てみましょう．
+(**
+  (* Now it is straightforward to prove the principle, which says that any stream pair in [R] is equal.  The reader may wish to step through the proof script to see what is going on. *)
+
+これで、「[R]に含まれるストリームの対は等しい」という、[stream_eq]に関する証明に役立つ余帰納法の原理が簡単に示せます。
+詳しく知りたい読者は証明スクリプトを順に追ってみてください。
 *)
 
   Theorem stream_eq_coind : forall s1 s2, R s1 s2 -> stream_eq s1 s2.
@@ -762,42 +740,36 @@ Section stream_eq_coind.
   Qed.
 End stream_eq_coind.
 
-(*
-(** To see why this proof is guarded, we can print it and verify that the one co-recursive call is an immediate argument to a constructor. *)
-*)
 (**
-この証明がガード条件を満たしていることは，
-その証明項を表示し，
-余再帰呼出しが構成子の直接の引数になっていることを確認すればわかります．
+(* To see why this proof is guarded, we can print it and verify that the one co-recursive call is an immediate argument to a constructor. *)
+
+この証明がガード条件を満たす理由は、[Print]で証明項を表示して余再帰呼び出しが構成子の直接の引数になっていることを確認すればわかります（ここでは出力は省略します）。
 *)
 
 Print stream_eq_coind.
 
-(*
-(** We omit the output and proceed to proving [ones_eq''] again.  The only bit of ingenuity is in choosing [R], and in this case the most restrictive predicate works. *)
-*)
 (**
-出力は省略することとして，先ほどの定理を [ones_eq''] として証明してみましょう．
-適切な [R] を選ぶのにちょっとした工夫が必要ですが，
-この場合はもっとも制限された述語を選べばうまく証明ができます．
+(* We omit the output and proceed to proving [ones_eq''] again.  The only bit of ingenuity is in choosing [R], and in this case the most restrictive predicate works. *)
+
+余帰納法の原理が得られたところで、改めて[ones_eq']を証明しましょう。
+少しだけ頭を使うのは[R]を選ぶところです。この場合は述語として制限がもっとも強いものを選べばうまくいきます。
 *)
 
-Theorem ones_eq'' : stream_eq ones ones'.
+Theorem ones_eq' : stream_eq ones ones'.
   apply (stream_eq_coind (fun s1 s2 => s1 = ones /\ s2 = ones')); crush.
 Qed.
 
-(*
-(** Note that this proof achieves the proper reduction behavior via [hd] and [tl], rather than [frob] as in the last proof.  All three functions pattern match on their arguments, catalyzing computation steps.
+(**
+(* Note that this proof achieves the proper reduction behavior via [hd] and [tl], rather than [frob] as in the last proof.  All three functions pattern match on their arguments, catalyzing computation steps.
 
    Compared to the inductive proofs that we are used to, it still seems unsatisfactory that we had to write out a choice of [R] in the last proof.  An alternate is to capture a common pattern of co-recursion in a more specialized co-induction principle.  For the current example, that pattern is: prove [stream_eq s1 s2] where [s1] and [s2] are defined as their own tails. *)
-*)
-(**
-この証明では，以前の証明で使った[frob]の代わりに[hd]と[tl]を通じて適切な簡約を実現しています．これらの3つの関数は，いずれも引数に対してパターンマッチすることにより，計算を進める触媒の役割を果たしています．
 
-これまでの帰納法による証明と比べると，この余帰納法による証明では関係[R]をわざわざ書き下さなければならず，依然として不満があるかもしれません．
-そこで，別の手段として，
-余帰納法の原理の特別な場合として余再帰に共通するパターンを見つけることを考えます．
-今の例では，そのパターンは「自分自身が後続することで定義されているような[s1]と[s2]に対して[stream_eq s1 s2]を証明する」というものです．
+この証明では、以前の証明で使った[frob]の代わりに、[hd]と[tl]を通じて適切な簡約を実現しています。
+これらの三つの関数は、いずれも引数に対するパターンマッチを行い、計算を進める触媒の役割を果たします。
+
+帰納法による証明と比べると、余帰納法による証明では[R]の選択をわざわざ書き下さなければならず、依然として不満が残ります。
+そこで、余帰納法の原理の特別な場合として、余再帰に共通するパターンを捉えることを考えます。
+今の例では、「自身の末尾として定義される[s1]と[s2]に対して[stream_eq s1 s2]を証明する」というのが、そのようなパターンになります。
 *)
 
 Section stream_eq_loop.
@@ -808,12 +780,10 @@ Section stream_eq_loop.
   Hypothesis loop1 : tl s1 = s1.
   Hypothesis loop2 : tl s2 = s2.
 
-(*
-  (** The proof of the principle includes a choice of [R], so that we no longer need to make such choices thereafter. *)
-*)
-  (**
-この帰納法の原理では，関係[R]を特別な場合に限定しているため，
-使う際にはその関係を指定する必要がありません．
+(**
+  (* The proof of the principle includes a choice of [R], so that we no longer need to make such choices thereafter. *)
+
+関係[R]の選択は帰納法の原理の証明に含まれるので、以降はそのような関係を指定する必要はありません。
 *)
 
   Theorem stream_eq_loop : stream_eq s1 s2.
@@ -826,10 +796,9 @@ Theorem ones_eq''' : stream_eq ones ones'.
 Qed.
 (* end thide *)
 
-(*
-(** Let us put [stream_eq_coind] through its paces a bit more, considering two different ways to compute infinite streams of all factorial values.  First, we import the [fact] factorial function from the standard library. *)
-*)
 (**
+(* Let us put [stream_eq_coind] through its paces a bit more, considering two different ways to compute infinite streams of all factorial values.  First, we import the [fact] factorial function from the standard library. *)
+
 [stream_eq_coind]より一歩先に進んだ余帰納法の原理を理解するために，
 自然数の階乗を無限に並べたストリーム(階乗ストリーム)を計算する2つの方法を考えましょう．
 まず，階乗を計算する関数[fact]を標準ライブラリから読み込みます．
