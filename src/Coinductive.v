@@ -799,9 +799,8 @@ Qed.
 (**
 (* Let us put [stream_eq_coind] through its paces a bit more, considering two different ways to compute infinite streams of all factorial values.  First, we import the [fact] factorial function from the standard library. *)
 
-[stream_eq_coind]より一歩先に進んだ余帰納法の原理を理解するために，
-自然数の階乗を無限に並べたストリーム(階乗ストリーム)を計算する2つの方法を考えましょう．
-まず，階乗を計算する関数[fact]を標準ライブラリから読み込みます．
+[stream_eq_coind]の使い道をさらに知るため、自然数の階乗をすべて含んだストリームを計算する方法を二通り考えましょう。
+まずは階乗の関数[fact]を標準ライブラリから読み込みます。
 *)
 
 Require Import Arith.
@@ -817,59 +816,46 @@ fix fact (n : nat) : nat :=
 ]]
 *)
 
-(*
-(** The simplest way to compute the factorial stream involves calling [fact] afresh at each position. *)
-*)
 (**
-階乗ストリームを計算するもっとも単純な方法は，
-要素ごとに[fact]関数を呼ぶことです．
+(* The simplest way to compute the factorial stream involves calling [fact] afresh at each position. *)
+
+階乗のストリームを計算するもっとも単純な方法は、それぞれの自然数で毎回[fact]を呼ぶことです。
 *)
 
 CoFixpoint fact_slow' (n : nat) := Cons (fact n) (fact_slow' (S n)).
 Definition fact_slow := fact_slow' 1.
 
-(*
-(** A more clever, optimized method maintains an accumulator of the previous factorial, so that each new entry can be computed with a single multiplication. *)
-*)
 (**
-最適化されたより賢い方法は，
-直前の階乗の値を記憶しつつ，要素ごとに1度の掛け算だけで計算する方法です．
+(* A more clever, optimized method maintains an accumulator of the previous factorial, so that each new entry can be computed with a single multiplication. *)
+
+より巧みで最適な方法は、それまで計算した階乗の値を蓄積しておいて、新しいストリームの要素を掛け算を一回だけして計算できるようにする方法です。
 *)
 
 CoFixpoint fact_iter' (cur acc : nat) := Cons acc (fact_iter' (S cur) (acc * cur)).
 Definition fact_iter := fact_iter' 2 1.
 
-(*
-(** We can verify that the streams are equal up to particular finite bounds. *)
-*)
 (**
-2つのストリームが有限個までは等しいことを確認してみましょう．
-*)
+(* We can verify that the streams are equal up to particular finite bounds. *)
 
+二つの方法で生成した階乗のストリームは、有限個までは等価であることを検証できます。
+
+<<
 Eval simpl in approx fact_iter 5.
-(** %\vspace{-.15in}%[[
      = 1 :: 2 :: 6 :: 24 :: 120 :: nil
      : list nat
-]]
-*)
+
 Eval simpl in approx fact_slow 5.
-(*
-(** %\vspace{-.15in}%[[
      = 1 :: 2 :: 6 :: 24 :: 120 :: nil
      : list nat
-]]
+>>
 
-Now, to prove that the two versions are equivalent, it is helpful to prove (and add as a proof hint) a quick lemma about the computational behavior of [fact].  (I intentionally skip explaining its proof at this point.) *)
-*)
-(** %\vspace{-.15in}%[[
-     = 1 :: 2 :: 6 :: 24 :: 120 :: nil
-     : list nat
-]]
+(* Now, to prove that the two versions are equivalent, it is helpful to prove (and add as a proof hint) a quick lemma about the computational behavior of [fact].  (I intentionally skip explaining its proof at this point.) *)
 
-2つのストリームが完全に等しいことを証明するために，
-[fact]関数による計算についての簡単な補題を証明してヒントとして追加します．
-(ここでは敢えて証明の解説はしません．)
+二通りの方法で生成したストリームが等価であることを証明するために、まずは[fact]の計算に関する性質について簡単な補題を証明します。
+その上で、証明した補題をヒントとして追加します（今のところ補題の証明については解説を避けます）。
+
 *)
+
 
 (* begin thide *)
 Lemma fact_def : forall x n,
@@ -879,13 +865,11 @@ Qed.
 
 Hint Resolve fact_def.
 
-(*
-(** With the hint added, it is easy to prove an auxiliary lemma relating [fact_iter'] and [fact_slow'].  The key bit of ingenuity is introduction of an existential quantifier for the shared parameter [n]. *)
-*)
 (**
-このヒントを加えると，
-[fact_iter']と[fact_slow']を関連づける補題の証明がしやすくなります．
-存在量化子で導入された共通の変数[n]を使うのがミソです．
+(* With the hint added, it is easy to prove an auxiliary lemma relating [fact_iter'] and [fact_slow'].  The key bit of ingenuity is introduction of an existential quantifier for the shared parameter [n]. *)
+
+このヒントを加えたことで、[fact_iter']と[fact_slow']を関連づける次の補題[fact_eq']が証明しやすくなります。
+共通の変数[n]を存在限量化する点に気づけば簡単に証明できます。
 *)
 
 Lemma fact_eq' : forall n, stream_eq (fact_iter' (S n) (fact n)) (fact_slow' n).
@@ -893,54 +877,49 @@ Lemma fact_eq' : forall n, stream_eq (fact_iter' (S n) (fact n)) (fact_slow' n).
     /\ s2 = fact_slow' n)); crush; eauto.
 Qed.
 
-(*
-(** The final theorem is a direct corollary of [fact_eq']. *)
-*)
 (**
-最終的な定理は[fact_eq']の系として簡単に得られます．
+(* The final theorem is a direct corollary of [fact_eq']. *)
+
+最終的な定理は[fact_eq']の系として簡単に得られます。
 *)
 
 Theorem fact_eq : stream_eq fact_iter fact_slow.
   apply fact_eq'.
 Qed.
 
-(*
-(** As in the case of [ones_eq'], we may be unsatisfied that we needed to write down a choice of [R] that seems to duplicate information already present in a lemma statement.  We can facilitate a simpler proof by defining a co-induction principle specialized to goals that begin with single universal quantifiers, and the strategy can be extended in a straightforward way to principles for other counts of quantifiers.  (Our [stream_eq_loop] principle is effectively the instantiation of this technique to zero quantifiers.) *)
-*)
 (**
-[ones_eq']の場合には，
-すでに補題の記述にあるものをわざわざ改めて[R]として書き下さなければならないことが不満だったかもしれません．
-一般的な場合でより簡潔に証明できるように，
-一つの全称量化子で始まる帰結に特化した余帰納法の原理を定義してみましょう．
-この原理から複数個の量化子を含む余帰納法の原理へ拡張することも簡単です．
-(先ほどの[stream_eq_loop]という余帰納法の原理は，量化子が0個の特殊な場合においてこの手法を適用したものです．)
+(* As in the case of [ones_eq'], we may be unsatisfied that we needed to write down a choice of [R] that seems to duplicate information already present in a lemma statement.  We can facilitate a simpler proof by defining a co-induction principle specialized to goals that begin with single universal quantifiers, and the strategy can be extended in a straightforward way to principles for other counts of quantifiers.  (Our [stream_eq_loop] principle is effectively the instantiation of this technique to zero quantifiers.) *)
+
+[ones_eq']の証明と同様に[R]の選択を書き下す必要がある点に不満が残るところかもしれません。
+[R]の選択は、補題の言明に含まれているので、冗長な情報に思えます。
+証明をさらに簡潔にする手法として、「全称限量子で始まるゴールに特化した余帰納法の原理を定義する」という手があります。
+なお、この手法は限量子の数が一つ以外の場合にもそのまま拡張できます（[stream_eq_loop]を使った証明は限量子が0個の場合にこの手法を具体化したものだと言えます）。
 *)
 
 
 Section stream_eq_onequant.
   Variables A B : Type.
-(*
-  (** We have the types [A], the domain of the one quantifier; and [B], the type of data found in the streams. *)
-*)
-  (**
-量化子で束縛される変数の型を[A]，ストリームの要素の型を[B]とします．
+(**
+  (* We have the types [A], the domain of the one quantifier; and [B], the type of data found in the streams. *)
+
+限量化する変数の定義域の型を[A]、ストリームの要素の型を[B]とします。
 *)
 
   Variables f g : A -> stream B.
-(*
-  (** The two streams we compare must be of the forms [f x] and [g x], for some shared [x].  Note that this falls out naturally when [x] is a shared universally quantified variable in a lemma statement. *)
-*)
-  (**
-比較しようとしている2つのストリームは，変数[x]を共有して[f x]や[g x]という形で表されるはずです．拡張された余帰納法の原理を使う補題では，この変数[x]が全称量化子として現れることになります．
+(**
+  (* The two streams we compare must be of the forms [f x] and [g x], for some shared [x].  Note that this falls out naturally when [x] is a shared universally quantified variable in a lemma statement. *)
+
+比較する二つのストリームは、共有の変数[x]を使って[f x]および[g x]という形になっていなければなりません。
+これは補題の言明において[x]が共通の全称量化子になっている場合には自然に成り立ちます。
 *)
 
   Hypothesis Cons_case_hd : forall x, hd (f x) = hd (g x).
   Hypothesis Cons_case_tl : forall x, exists y, tl (f x) = f y /\ tl (g x) = g y.
-(*
-  (** These conditions are inspired by the bisimulation requirements, with a more general version of the [R] choice we made for [fact_eq'] inlined into the hypotheses of [stream_eq_coind]. *)
-*)
-  (**
-これらの条件は双模倣の定義に触発されたもので，[fact_eq']を証明するために使った[R]を一般化し，[stream_eq_coind]の仮定の部分に展開することで得られます．
+
+(**
+  (* These conditions are inspired by the bisimulation requirements, with a more general version of the [R] choice we made for [fact_eq'] inlined into the hypotheses of [stream_eq_coind]. *)
+
+上記の仮定は、[fact_eq']における[R]の選択をさらに一般化して[stream_eq_coind]の仮定にインライン展開した、双模倣性の要件を表すものです。
 *)
 
   Theorem stream_eq_onequant : forall x, stream_eq (f x) (g x).
@@ -952,49 +931,47 @@ Lemma fact_eq'' : forall n, stream_eq (fact_iter' (S n) (fact n)) (fact_slow' n)
   apply stream_eq_onequant; crush; eauto.
 Qed.
 
-(*
-(** We have arrived at one of our customary automated proofs, thanks to the new principle. *)
-*)
-(** 
-新しい余帰納法の原理のおかげで，これまで行ってきたような通常の自動証明にたどり着きました．
+(**
+(* We have arrived at one of our customary automated proofs, thanks to the new principle. *)
+
+新しい余帰納法の原理を使うことで、いつもの要領で自動証明ができるようになりました。
 *)
 (* end thide *)
 
 
-(** * Simple Modeling of Non-Terminating Programs *)
+(**
+(* * Simple Modeling of Non-Terminating Programs *)
+* 終了しないプログラムの簡潔なモデル化
 
-(*
-(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple imperative programming language and use that semantics to prove the correctness of a trivial optimization that removes spurious additions by 0.  We follow the technique of%\index{co-inductive big-step operational semantics}% _co-inductive big-step operational semantics_ %\cite{BigStep}%.
+(**
+(* We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple imperative programming language and use that semantics to prove the correctness of a trivial optimization that removes spurious additions by 0.  We follow the technique of%\index{co-inductive big-step operational semantics}% _co-inductive big-step operational semantics_ %\cite{BigStep}%.
 
    We define a suggestive synonym for [nat], as we will consider programs over infinitely many variables, represented as [nat]s. *)
-*)
-(** 
-最後に，役に立ちそうな例を通じて余帰納的型の複雑な使い方を紹介します．
-ここでは，単純な手続き型プログラミング言語の余帰納的意味論を定義し，
-その意味論の下で，
-0を加算するという無駄な処理を取り除く自明な最適化の正当性を証明してみましょう．
-%\index{余帰納的ビッグステップ操作的意味論}% 「余帰納的ビッグステップ操作的意味論」 %\cite{BigStep}% に従って進めていきます．
 
-まず，この言語におけるプログラムでは，無限個の変数を扱えるようにする必要があるので，それを[nat]のわかりやすい別名として用意します．
+余帰納的な型を使ったより複雑な例として、本章の最後に役に立ちそうな事例を紹介します。
+単純な手続き型プログラミング言語に対する余帰納的な意味論を定義し、その意味論を使って、0を加算するという無駄な処理を取り除く自明な最適化の正当性を証明してみましょう。
+この意味論は%\index{余帰納的な大ステップ操作的意味論}%_余帰納的な大ステップ操作的意味論_%\cite{BigStep}%に従うものです。
+
+プログラムの変数となる無限個の値は[nat]で表すことにします。そのために[nat]の別名として[var]を用意します。
 *)
 
 Definition var := nat.
 
 (**
-次に，変数から値への写像の型[vars]を定義します．
-ある変数から値への対応を写像に上書きする関数[set]を定義するには，
-自然数同士を比較する標準ライブラリ関数[beg_nat]を使います．
+We define a type [vars] of maps from variables to values. To define a function [set] for setting a variable's value in a map, we use the standard library function [beq_nat] for comparing natural numbers.
+
+次に、変数から値への写像の型[vars]を定義します。
+そして、自然数を比較する標準ライブラリ関数[beg_nat]を使って、写像に要素（変数とその値）を設定する関数[set]を定義します。
 *)
 
 Definition vars := var -> nat.
 Definition set (vs : vars) (v : var) (n : nat) : vars :=
   fun v' => if beq_nat v v' then n else vs v'.
 
-(*
-(** We define a simple arithmetic expression language with variables, and we give it a semantics via an interpreter. *)
-*)
 (**
-変数を含む算術式を表す言語を定義して，インタプリタ関数によってその意味論を与えます．
+(* We define a simple arithmetic expression language with variables, and we give it a semantics via an interpreter. *)
+
+変数で算術式を表す単純な言語を定義し、インタプリタとして意味論を与えましょう。
 *)
 
 Inductive exp : Set :=
@@ -1009,13 +986,11 @@ Fixpoint evalExp (vs : vars) (e : exp) : nat :=
     | Plus e1 e2 => evalExp vs e1 + evalExp vs e2
   end.
 
-(*
-(** Finally, we define a language of commands.  It includes variable assignment, sequencing, and a <<while>> form that repeats as long as its test expression evaluates to a nonzero value. *)
-*)
-(** 
-最後に，命令言語を定義します．
-命令の構文として，変数への代入，命令の連結，
-条件式が0でない値をもつ限り繰り返す<<while>>文があります．
+(**
+(* Finally, we define a language of commands.  It includes variable assignment, sequencing, and a <<while>> form that repeats as long as its test expression evaluates to a nonzero value. *)
+
+最後にコマンドを定義します。
+変数への代入、コマンドの連結、条件式の値がゼロにならない限り繰り返しを実行する<<while>>文があります。
 *)
 
 Inductive cmd : Set :=
@@ -1023,18 +998,15 @@ Inductive cmd : Set :=
 | Seq : cmd -> cmd -> cmd
 | While : exp -> cmd -> cmd.
 
-(*
-(** We could define an inductive relation to characterize the results of command evaluation.  However, such a relation would not capture _nonterminating_ executions.  With a co-inductive relation, we can capture both cases.  The parameters of the relation are an initial state, a command, and a final state.  A program that does not terminate in a particular initial state is related to _any_ final state.  For more realistic languages than this one, it is often possible for programs to _crash_, in which case a semantics would generally relate their executions to no final states; so relating safely non-terminating programs to all final states provides a crucial distinction. *)
-*)
 (**
-命令に対する実行結果を帰納的関係によって特徴づけることもできるかもしれません．
-しかしながら，そのように定義された関係では「停止しない実行」を表現することはできません．
-余帰納的関係を使えば，停止する場合もしない場合も両方表現することができます．
-その関係は，初期状態と命令と最終状態の三項関係によって与えられます．
-ある初期状態から停止しないプログラムは「あらゆる」最終状態に関係づけられるように定義します．
-この言語より現実的な言語では，プログラムが予期せず停止することもよくあるでしょう．
-一般的に，そういったプログラムについてはどんな最終状態にも関係づけられないように意味論を定義します．
-予期しない停止と明確に区別するためには，安全で停止しないプログラムにすべての最終状態を関連づけることはとても重要なことです．
+(* We could define an inductive relation to characterize the results of command evaluation.  However, such a relation would not capture _nonterminating_ executions.  With a co-inductive relation, we can capture both cases.  The parameters of the relation are an initial state, a command, and a final state.  A program that does not terminate in a particular initial state is related to _any_ final state.  For more realistic languages than this one, it is often possible for programs to _crash_, in which case a semantics would generally relate their executions to no final states; so relating safely non-terminating programs to all final states provides a crucial distinction. *)
+
+コマンドの実行結果を表すには、帰納的な関係を使うこともできますが、帰納的な関係では_停止しない_実行は表現できないでしょう。
+余帰納的な関係を使えば、停止する実行も停止しない実行も表現できます。
+コマンドの実行結果を表す関係は、初期状態、命令、終了状態の三項関係として定義します。
+ある初期状態に対して停止しないプログラムは、_任意_の終了状態に関連付けます。
+もっと実用的なプログラミング言語であれば、プログラムが予期せず_クラッシュ_することもあり、通常の意味論では、そのような状況には何の終了状態も関連付けません。
+安全に停止しないプログラムを任意の終了状態に関連付けることは、予期しない停止との明確な区別にとって重要なのです。
 *)
 
 CoInductive evalCmd : vars -> cmd -> vars -> Prop :=
@@ -1049,11 +1021,10 @@ CoInductive evalCmd : vars -> cmd -> vars -> Prop :=
   -> evalCmd vs2 (While e c) vs3
   -> evalCmd vs1 (While e c) vs3.
 
-(*
-(** Having learned our lesson in the last section, before proceeding, we build a co-induction principle for [evalCmd]. *)
-*)
 (**
-先に進む前に，前節で学習したように [evalCmd] に対する余帰納法の原理を準備します．
+(* Having learned our lesson in the last section, before proceeding, we build a co-induction principle for [evalCmd]. *)
+
+前節で学んだ教訓をもとに、先に進む前に[evalCmd]に対する余帰納法の原理を準備します。
 *)
 
 Section evalCmd_coind.
@@ -1069,14 +1040,12 @@ Section evalCmd_coind.
     -> (evalExp vs1 e = 0 /\ vs3 = vs1)
     \/ exists vs2, evalExp vs1 e <> 0 /\ R vs1 c vs2 /\ R vs2 (While e c) vs3.
 
-(*
-  (** The proof is routine.  We make use of a form of %\index{tactics!destruct}%[destruct] that takes an%\index{intro pattern}% _intro pattern_ in an [as] clause.  These patterns control how deeply we break apart the components of an inductive value, and we refer the reader to the Coq manual for more details. *)
-*)
-  (** 
-証明は簡単です．
-[as]句として%\index{イントロパターン}%イントロパターンを用いた[destruct]タクティクを利用します．
-このパターンを使うと帰納的な値を深いところまで分解することができます．
-詳しくはCoqのマニュアルをご覧ください．
+(**
+  (* The proof is routine.  We make use of a form of %\index{tactics!destruct}%[destruct] that takes an%\index{intro pattern}% _intro pattern_ in an [as] clause.  These patterns control how deeply we break apart the components of an inductive value, and we refer the reader to the Coq manual for more details. *)
+
+いつもの流れで証明していきます。
+%\index{tactics!destruct}%[destruct]では、帰納的な値をどこまで深く分解するかを[as]句に指定できるので、この仕組みを利用します。
+[as]に指定するパターンは%\index{イントロパターン}%_イントロパターン_と呼ばれます。詳しくはCoqのマニュアルを参照してください。
 *)
 
   Theorem evalCmd_coind : forall vs1 c vs2, R vs1 c vs2 -> evalCmd vs1 c vs2.
@@ -1087,12 +1056,11 @@ Section evalCmd_coind.
   Qed.
 End evalCmd_coind.
 
-(*
-(** Now that we have a co-induction principle, we should use it to prove something!  Our example is a trivial program optimizer that finds places to replace [0 + e] with [e]. *)
-*)
 (**
-余帰納法の原理を得たからには，これを使って何か証明したいですよね！
-今回は例として[0 + e]を見つけて[e]に置き換える自明なプログラム最適化器を考えます．
+(* Now that we have a co-induction principle, we should use it to prove something!  Our example is a trivial program optimizer that finds places to replace [0 + e] with [e]. *)
+
+余帰納法の原理が得られたので、これを使ってさっそく何かを証明してみましょう。
+ここでは、[0 + e]を[e]に置き換えられる場所を見つけ出すプログラム最適化器の正当性を証明します。
 *)
 
 Fixpoint optExp (e : exp) : exp :=
@@ -1109,12 +1077,12 @@ Fixpoint optCmd (c : cmd) : cmd :=
     | While e c => While (optExp e) (optCmd c)
   end.
 
-(*
-(** Before proving correctness of [optCmd], we prove a lemma about [optExp].  This is where we have to do the most work, choosing pattern match opportunities automatically. *)
-*)
-(** 
-[optCmd]関数の正当性を証明する前に，[optExp]に関する補題を証明しましょう．
-この部分はパターンマッチを自動的に選ぶというすべきことが最も多いところです．
+(**
+(* Before proving correctness of [optCmd], we prove a lemma about [optExp].  This is where we have to do the most work, choosing pattern match opportunities automatically. *)
+
+[optCmd]の正当性を証明する前に、[optExp]に関する補題を証明します。
+場合分けが可能なパターンを自動的に選ぶという、最終的な証明の中でもっともすべきことが多い部分です。
+
 *)
 
 (* begin thide *)
@@ -1128,12 +1096,12 @@ Qed.
 
 Hint Rewrite optExp_correct.
 
-(*
-(** The final theorem is easy to establish, using our co-induction principle and a bit of Ltac smarts that we leave unexplained for now.  Curious readers can consult the Coq manual, or wait for the later chapters of this book about proof automation.  At a high level, we show inclusions between behaviors, going in both directions between original and optimized programs. *)
-*)
 (**
-最後の定理は簡単に証明できますが，余帰納法の原理に加えてこれまで説明してこなかったLtacによる賢い方法を使います．興味があればCoqのマニュアルを調べてもよいですし，この本の後ろの方の自動証明に関する章まで待ってもよいでしょう．
-ざっくり言えば，元のプログラムと最適化されたプログラムの振舞いについて互いの包含関係を証明しています．
+(* The final theorem is easy to establish, using our co-induction principle and a bit of Ltac smarts that we leave unexplained for now.  Curious readers can consult the Coq manual, or wait for the later chapters of this book about proof automation.  At a high level, we show inclusions between behaviors, going in both directions between original and optimized programs. *)
+
+最終的に証明すべき定理は、先に作った余帰納法の原理と、Ltacという証明の自動化のための仕組みを使うことで、簡単に確立できます。
+Ltacについては第14章で説明します。
+下記の証明でやっていることを大まかに要約すると、元のプログラムの振る舞いと最適化されたプログラムの振る舞いに包含関係があることを示しています。
 *)
 
 Ltac finisher := match goal with
@@ -1163,16 +1131,12 @@ Theorem optCmd_correct : forall vs1 c vs2, evalCmd vs1 (optCmd c) vs2
 Qed.
 (* end thide *)
 
-(*
-(** In this form, the theorem tells us that the optimizer preserves observable behavior of both terminating and nonterminating programs, but we did not have to do more work than for the case of terminating programs alone.  We merely took the natural inductive definition for terminating executions, made it co-inductive, and applied the appropriate co-induction principle.  Curious readers might experiment with adding command constructs like <<if>>; the same proof script should continue working, after the co-induction principle is extended to the new evaluation rules. *)
-*)
 (**
-こうして，停止するプログラムでも停止しないプログラムでも最適化によって振舞いが変わらないことを示す定理が得られましたが，
-停止するプログラムだけを考える場合と比較しても証明すべきことは多くなかったでしょう．
-今回やったことは，
-停止するプログラムに対する自然な帰納的定義を採用してそれを余帰納的にし，
-適切な余帰納法の原理を適用しただけです．
-興味があれば<<if>>のような命令構成子も追加して証明してみてください．
-余帰納法の原理を新しい評価規則にも対応させれば，
-同じ証明スクリプトが使えるはずです．
+(* In this form, the theorem tells us that the optimizer preserves observable behavior of both terminating and nonterminating programs, but we did not have to do more work than for the case of terminating programs alone.  We merely took the natural inductive definition for terminating executions, made it co-inductive, and applied the appropriate co-induction principle.  Curious readers might experiment with adding command constructs like <<if>>; the same proof script should continue working, after the co-induction principle is extended to the new evaluation rules. *)
+
+この定理により、プログラムの振る舞いが最適化によって変わらないことが、停止するプログラムについても停止しないプログラムについても言えています。
+しかし、実際に証明にあたって必要だった手間は、停止するプログラムについてだけ考える場合と大差ありませんでした。
+停止するプログラムの実行についての自然で帰納的な定義を考え、それを余帰納的にし、適切な余帰納法の原理を適用しただけです。
+このプログラミング言語に<<if>>のようなコマンドを追加してみてもいいでしょう。
+その新しい評価規則に合わせて余帰納法の原理を拡張すれば、引き続き同じ証明スクリプトで証明できるはずです。
 *)
