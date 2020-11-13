@@ -21,16 +21,33 @@ Set Asymmetric Patterns.
 (** printing <-- $\longleftarrow$ *)
 
 
-(** %\part{Programming with Dependent Types}
+(**
+(* %\part{Programming with Dependent Types} 
 
 \chapter{Subset Types and Variations}% *)
 
-(** So far, we have seen many examples of what we might call "classical program verification."  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of%\index{dependent types}% _dependent types_ to integrate programming, specification, and proving into a single phase.  The techniques we will learn make it possible to reduce the cost of program verification dramatically. *)
+%\part{依存型によるプログラミング} \chapter{部分集合とその仲間}%
 
 
-(** * Introducing Subset Types *)
+(**
+(* So far, we have seen many examples of what we might call "classical program verification."  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of%\index{dependent types}% _dependent types_ to integrate programming, specification, and proving into a single phase.  The techniques we will learn make it possible to reduce the cost of program verification dramatically. *)
 
-(** Let us consider several ways of implementing the natural number predecessor function.  We start by displaying the definition from the standard library: *)
+第I部では「古典的なプログラム検証」と呼ばれるものの例をいくつも見てきました。
+プログラムを書き、その仕様を書いて、それからプログラムが仕様を満たすことを証明しました。
+Coqで書いたプログラムは、HaskellやMLで書いていたような通常の関数プログラミングでした。
+本章では、プログラミングと仕様と証明を一つの相に統合するために、%\index{依存型}% _依存型_の使い方を見ていきます。
+
+(**
+* Introducing Subset Types 
+
+* 部分集合型の導入
+
+(* Let us consider several ways of implementing the natural number predecessor function.  We start by displaying the definition from the standard library: *)
+
+自然数の前者関数を実装する方法をいくつか考えてみましょう。
+標準ライブラリにおける定義から始めます。
+
+*)
 
 Print pred.
 (** %\vspace{-.15in}% [[
@@ -42,20 +59,27 @@ pred = fun n : nat => match n with
  
 ]]
 
-We can use a new command, %\index{Vernacular commands!Extraction}\index{program extraction}\index{extraction|see{program extraction}}%[Extraction], to produce an %\index{OCaml}%OCaml version of this function. *)
+(* We can use a new command, %\index{Vernacular commands!Extraction}\index{program extraction}\index{extraction|see{program extraction}}%[Extraction], to produce an %\index{OCaml}%OCaml version of this function. *)
+
+%\index{Vernacular commands!Extraction}\index{program extraction}\index{extraction|see{program extraction}}%
+[Extraction]という新しいコマンドを使うと、この関数から、%\index{OCaml}%OCamlの関数を生成できます。
 
 Extraction pred.
+(** %\vspace{-.15in}% [[
 
-(** <<
 (** val pred : nat -> nat **)
 
 let pred = function
   | O -> O
   | S u -> u
->>
-*)
+]]
 
-(** Returning 0 as the predecessor of 0 can come across as somewhat of a hack.  In some situations, we might like to be sure that we never try to take the predecessor of 0.  We can enforce this by giving [pred] a stronger, dependent type. *)
+(* Returning 0 as the predecessor of 0 can come across as somewhat of a hack.  In some situations, we might like to be sure that we never try to take the predecessor of 0.  We can enforce this by giving [pred] a stronger, dependent type. *)
+
+0の前者として0を返すのは、ある種のハックに思えます。
+状況によっては、0の前者を取ろうとすることを一切できなくしたいところです。
+これを強制する手法として、依存型と呼ばれる強力な引数を[pred]に持たせるという手があります。
+*)
 
 Lemma zgtz : 0 > 0 -> False.
   crush.
@@ -67,23 +91,38 @@ Definition pred_strong1 (n : nat) : n > 0 -> nat :=
     | S n' => fun _ => n'
   end.
 
-(** We expand the type of [pred] to include a _proof_ that its argument [n] is greater than 0.  When [n] is 0, we use the proof to derive a contradiction, which we can use to build a value of any type via a vacuous pattern match.  When [n] is a successor, we have no need for the proof and just return the answer.  The proof argument can be said to have a _dependent_ type, because its type depends on the _value_ of the argument [n].
+(**
+(* We expand the type of [pred] to include a _proof_ that its argument [n] is greater than 0.  When [n] is 0, we use the proof to derive a contradiction, which we can use to build a value of any type via a vacuous pattern match.  When [n] is a successor, we have no need for the proof and just return the answer.  The proof argument can be said to have a _dependent_ type, because its type depends on the _value_ of the argument [n].
 
    Coq's [Eval] command can execute particular invocations of [pred_strong1] just as easily as it can execute more traditional functional programs.  Note that Coq has decided that argument [n] of [pred_strong1] can be made _implicit_, since it can be deduced from the type of the second argument, so we need not write [n] in function calls. *)
+
+上記では、[pred]の型を拡張して、「その引数[n]が0より大きい」ことの_証明_を含められるようにしています。
+[n]が0の場合には、その証明を使って矛盾を導き、場合分けがないパターンマッチを介して任意の型の値を作り出せます。
+[n]が何かの後者である場合には、その証明は必要ないので、単に答えを返します。
+証明を引数に取る関数は、その型が引数[n]の_値_に依存するので、_依存型を持つ_と呼ばれます。
+
+Coqで[pred_strong1]を実行するには[Eval]コマンドを使います。一般的な関数プログラムと同じように実行可能です。
+[pred_strong1]の引数[n]は、二番めの引数の型から導出できるので、Coqにより「_暗黙_に生成できる」と判断されていることに注目してください。
+そのため、関数を呼び出すときに[n]を指定する必要はありません。
+*)
 
 Theorem two_gt0 : 2 > 0.
   crush.
 Qed.
 
 Eval compute in pred_strong1 two_gt0.
-(** %\vspace{-.15in}% [[
+(** [[
      = 1
      : nat
  ]]
 
-One aspect in particular of the definition of [pred_strong1] may be surprising.  We took advantage of [Definition]'s syntactic sugar for defining function arguments in the case of [n], but we bound the proofs later with explicit [fun] expressions.  Let us see what happens if we write this function in the way that at first seems most natural.
+(* One aspect in particular of the definition of [pred_strong1] may be surprising.  We took advantage of [Definition]'s syntactic sugar for defining function arguments in the case of [n], but we bound the proofs later with explicit [fun] expressions.  Let us see what happens if we write this function in the way that at first seems most natural. *)
 
-%\vspace{-.15in}%[[
+[pred_strong1]の定義には、意外かもしれない点が一つあります。
+[n]についての場合分けでは[Definition]の構文糖衣を利用して関数の引数を定義しましたが、わざわざ[fun]式を作って後から証明を束縛しているところです。
+次のように書くほうが自然に思えるかもしれません。
+
+[[
 Definition pred_strong1' (n : nat) (pf : n > 0) : nat :=
   match n with
     | O => match zgtz pf with end
@@ -99,11 +138,22 @@ The term "pf" has type "n > 0" while it is expected to have type
 "0 > 0"
 >>
 
-The term [zgtz pf] fails to type-check.  Somehow the type checker has failed to take into account information that follows from which [match] branch that term appears in.  The problem is that, by default, [match] does not let us use such implied information.  To get refined typing, we must always rely on [match] annotations, either written explicitly or inferred.
+(* The term [zgtz pf] fails to type-check.  Somehow the type checker has failed to take into account information that follows from which [match] branch that term appears in.  The problem is that, by default, [match] does not let us use such implied information.  To get refined typing, we must always rely on [match] annotations, either written explicitly or inferred. *)
 
-In this case, we must use a [return] annotation to declare the relationship between the _value_ of the [match] discriminee and the _type_ of the result.  There is no annotation that lets us declare a relationship between the discriminee and the type of a variable that is already in scope; hence, we delay the binding of [pf], so that we can use the [return] annotation to express the needed relationship.
+[zgtz pf]という項は型検査に失敗します。
+どういうわけか、この項が出現する[match]節から得られるはずの情報を加味することに、型検査器が失敗してしまうのです。
+問題は、[match]ではこのような暗黙の情報をデフォルトでは使えないことにあります。
+型付けの精度を上げるには、明示的なものであれ推論されるものであれ、[match]に対する注釈に頼る必要があります。
 
-We are lucky that Coq's heuristics infer the [return] clause (specifically, [return n > 0 -> nat]) for us in the definition of [pred_strong1], leading to the following elaborated code: *)
+(* In this case, we must use a [return] annotation to declare the relationship between the _value_ of the [match] discriminee and the _type_ of the result.  There is no annotation that lets us declare a relationship between the discriminee and the type of a variable that is already in scope; hence, we delay the binding of [pf], so that we can use the [return] annotation to express the needed relationship. *)
+
+この場合は、[match]の判定に使われる_値_と結果の_型_との間に関係があることを宣言する必要があり、そのために[return]という注釈を使っています。
+スコープ内にある変数の型が判定に使われる値に関係していることを宣言する注釈はないので、必要になる関係を[return]で表現できるように、[pf]の束縛を遅らせているのです。
+
+(* We are lucky that Coq's heuristics infer the [return] clause (specifically, [return n > 0 -> nat]) for us in the definition of [pred_strong1], leading to the following elaborated code: *)
+
+幸い、[pred_strong1]の定義における[return]節（具体的には[return n > 0 -> nat]）ではCoqのヒューリスティックによる推論が効くので、下記のように簡潔に書くことはできます。
+*)
 
 Definition pred_strong1' (n : nat) : n > 0 -> nat :=
   match n return n > 0 -> nat with
@@ -111,9 +161,18 @@ Definition pred_strong1' (n : nat) : n > 0 -> nat :=
     | S n' => fun _ => n'
   end.
 
-(** By making explicit the functional relationship between value [n] and the result type of the [match], we guide Coq toward proper type checking.  The clause for this example follows by simple copying of the original annotation on the definition.  In general, however, the [match] annotation inference problem is undecidable.  The known undecidable problem of%\index{higher-order unification}% _higher-order unification_ %\cite{HOU}% reduces to the [match] type inference problem.  Over time, Coq is enhanced with more and more heuristics to get around this problem, but there must always exist [match]es whose types Coq cannot infer without annotations.
+(** 
+(* By making explicit the functional relationship between value [n] and the result type of the [match], we guide Coq toward proper type checking.  The clause for this example follows by simple copying of the original annotation on the definition.  In general, however, the [match] annotation inference problem is undecidable.  The known undecidable problem of%\index{higher-order unification}% _higher-order unification_ %\cite{HOU}% reduces to the [match] type inference problem.  Over time, Coq is enhanced with more and more heuristics to get around this problem, but there must always exist [match]es whose types Coq cannot infer without annotations. *)
 
-Let us now take a look at the OCaml code Coq generates for [pred_strong1]. *)
+値[n]と、[match]の結果の型との間の関係を明示することで、Coqが適切に型検査をするように誘導できます。
+注釈としては、この例では標準ライブラリの定義にあるものを引き写しましたが、[match]に対する注釈を決めるという問題は一般には決定不能です。
+[match]の型を推論する問題は、%\index{高階ユニフィケーション}% _高階ユニフィケーション_ %\cite{HOU}%（higher-order unification）と呼ばれる問題に帰着します。
+長年の間にヒューリスティックにより解決できる範囲は広がりましたが、注釈なしではCodが推論できない[match]の型は必ず残ってしまいます。
+
+(* Let us now take a look at the OCaml code Coq generates for [pred_strong1]. *)
+
+次は、[pred_strong1]に対してCoqが生成するOCamlのコードを見てみましょう。
+*)
 
 Extraction pred_strong1.
 
@@ -127,11 +186,18 @@ let pred_strong1 = function
 >>
 *)
 
-(** The proof argument has disappeared!  We get exactly the OCaml code we would have written manually.  This is our first demonstration of the main technically interesting feature of Coq program extraction: proofs are erased systematically.
+(** 
+(* The proof argument has disappeared!  We get exactly the OCaml code we would have written manually.  This is our first demonstration of the main technically interesting feature of Coq program extraction: proofs are erased systematically. *)
 
-%\medskip%
+OCamlのコードでは証明の引数が消えています。
+最初からOCamlで書いたかのようなコードが得られました。
+Coqによるプログラム抽出が技術的に面白い点は、このように証明がシステマティックに消されることにあります。
 
-We can reimplement our dependently typed [pred] based on%\index{subset types}% _subset types_, defined in the standard library with the type family %\index{Gallina terms!sig}%[sig]. *)
+(* We can reimplement our dependently typed [pred] based on%\index{subset types}% _subset types_, defined in the standard library with the type family %\index{Gallina terms!sig}%[sig]. *)
+
+依存型を使った[pred]の実装を見ましたが、%\index{subset types}% _部分集合型_（subset type）を使った実装も可能です。
+部分集合型は、標準ライブラリでは%\index{Gallina terms!sig}%[sig]という型族で定義されています。
+*)
 
 (* begin hide *)
 (* begin thide *)
@@ -140,21 +206,32 @@ Definition bar := ex.
 (* end hide *)
 
 Print sig.
-(** %\vspace{-.15in}% [[
+(** [[
 Inductive sig (A : Type) (P : A -> Prop) : Type :=
     exist : forall x : A, P x -> sig P
 ]]
 
-The family [sig] is a Curry-Howard twin of [ex], except that [sig] is in [Type], while [ex] is in [Prop].  That means that [sig] values can survive extraction, while [ex] proofs will always be erased.  The actual details of extraction of [sig]s are more subtle, as we will see shortly.
+(* 8.12の出力では`P x -> sig P`ではなく、この段階で`P x -> {x : A | P x}`で表示されてしまう -kshikano *)
 
-We rewrite [pred_strong1], using some syntactic sugar for subset types. *)
+(* The family [sig] is a Curry-Howard twin of [ex], except that [sig] is in [Type], while [ex] is in [Prop].  That means that [sig] values can survive extraction, while [ex] proofs will always be erased.  The actual details of extraction of [sig]s are more subtle, as we will see shortly. *)
+
+[Type]である[sig]は、[Prop]である[ex]に対するCurry-Howard対応です。
+これは、プログラム抽出では[sig]の値が残り、[ex]の証明が消去されることを意味します。
+[sig]の抽出には、後で説明するように、実際に詳しく見るともう少し微妙な点があります。
+
+(* We rewrite [pred_strong1], using some syntactic sugar for subset types. *)
+
+部分集合型には次のような構文糖衣があります。
+*)
 
 Locate "{ _ : _ | _ }".
-(** %\vspace{-.15in}% [[
+(** [[
   Notation
   "{ x : A  |  P }" := sig (fun x : A => P)
    ]]
- *)
+
+これを使って[pred_strong1]を書き換えると、次のようになります。
+*)
 
 Definition pred_strong2 (s : {n : nat | n > 0}) : nat :=
   match s with
@@ -162,10 +239,18 @@ Definition pred_strong2 (s : {n : nat | n > 0}) : nat :=
     | exist (S n') _ => n'
   end.
 
-(** To build a value of a subset type, we use the [exist] constructor, and the details of how to do that follow from the output of our earlier [Print sig] command, where we elided the extra information that parameter [A] is implicit.  We need an extra [_] here and not in the definition of [pred_strong2] because _parameters_ of inductive types (like the predicate [P] for [sig]) are not mentioned in pattern matching, but _are_ mentioned in construction of terms (if they are not marked as implicit arguments). *)
+(**
+(* To build a value of a subset type, we use the [exist] constructor, and the details of how to do that follow from the output of our earlier [Print sig] command, where we elided the extra information that parameter [A] is implicit.  We need an extra [_] here and not in the definition of [pred_strong2] because _parameters_ of inductive types (like the predicate [P] for [sig]) are not mentioned in pattern matching, but _are_ mentioned in construction of terms (if they are not marked as implicit arguments). *)
+
+部分集合型の値を組み立てるには[exist]構成子を使います。
+どうやって構成するかは、先に示した[Print sig]コマンドの出力から従います。
+上記の定義では、[A]型の変数[x]が暗黙に全称限量化されているという情報が省かれていますが、[pred_strong2]を使うときには余分な[_]が必要です。
+これは、パターンマッチの中では帰納型の_変数_（[sig]に対する命題[P]など）は言及されませんが、項の構成では実際に言及されるからです
+（暗黙の引数であるという注釈があるときは別です）。
+*)
 
 Eval compute in pred_strong2 (exist _ 2 two_gt0).
-(** %\vspace{-.15in}% [[
+(**  [[
      = 1
      : nat
      ]]
@@ -182,9 +267,19 @@ let pred_strong2 = function
   | S n' -> n'
 >>
 
-We arrive at the same OCaml code as was extracted from [pred_strong1], which may seem surprising at first.  The reason is that a value of [sig] is a pair of two pieces, a value and a proof about it.  Extraction erases the proof, which reduces the constructor [exist] of [sig] to taking just a single argument.  An optimization eliminates uses of datatypes with single constructors taking single arguments, and we arrive back where we started.
+(* We arrive at the same OCaml code as was extracted from [pred_strong1], which may seem surprising at first.  The reason is that a value of [sig] is a pair of two pieces, a value and a proof about it.  Extraction erases the proof, which reduces the constructor [exist] of [sig] to taking just a single argument.  An optimization eliminates uses of datatypes with single constructors taking single arguments, and we arrive back where we started. *)
 
-We can continue on in the process of refining [pred]'s type.  Let us change its result type to capture that the output is really the predecessor of the input. *)
+OCamlプログラムを抽出してみると、最初は意外に感じるかもしれませんが、上記のように[pred_strong1]の場合と同じコードが得られます。
+同じコードが得られる理由は、[sig]の値が、実際には値とその証明の二つから成り立っているからです。
+プログラム抽出により、証明は除去され、[sig]の[exist]は引数を一つだけ取るように縮退されます。
+最適化により、一つだけ引数を取る単一の構成子からなるデータ型は取り除かれるので、結果として振り出しに戻るのです。
+
+(* We can continue on in the process of refining [pred]'s type.  Let us change its result type to capture that the output is really the predecessor of the input. *)
+
+[pred]の型はさらに洗練できます。
+結果の型を変更して、出力が実際に入力の前者であるという事実を捉えたものにしてみましょう。
+
+*)
 
 Definition pred_strong3 (s : {n : nat | n > 0}) : {m : nat | proj1_sig s = S m} :=
   match s return {m : nat | proj1_sig s = S m} with
@@ -199,11 +294,11 @@ Definition ugh := lt.
 (* end hide *)
 
 Eval compute in pred_strong3 (exist _ 2 two_gt0).
-(** %\vspace{-.15in}% [[
+(**  [[
      = exist (fun m : nat => 2 = S m) 1 (eq_refl 2)
      : {m : nat | proj1_sig (exist (lt 0) 2 two_gt0) = S m}
       ]]
-     *)
+*)
 
 (* begin hide *)
 (* begin thide *)
@@ -211,9 +306,18 @@ Definition pred_strong := 0.
 (* end thide *)
 (* end hide *)
 
-(** A value in a subset type can be thought of as a%\index{dependent pair}% _dependent pair_ (or%\index{sigma type}% _sigma type_) of a base value and a proof about it.  The function %\index{Gallina terms!proj1\_sig}%[proj1_sig] extracts the first component of the pair.  It turns out that we need to include an explicit [return] clause here, since Coq's heuristics are not smart enough to propagate the result type that we wrote earlier.
+(**
+(* A value in a subset type can be thought of as a%\index{dependent pair}% _dependent pair_ (or%\index{sigma type}% _sigma type_) of a base value and a proof about it.  The function %\index{Gallina terms!proj1\_sig}%[proj1_sig] extracts the first component of the pair.  It turns out that we need to include an explicit [return] clause here, since Coq's heuristics are not smart enough to propagate the result type that we wrote earlier. *)
 
-By now, the reader is probably ready to believe that the new [pred_strong] leads to the same OCaml code as we have seen several times so far, and Coq does not disappoint. *)
+部分集合型の値は、基になる値とその証明からなる%\index{依存対}% _依存対_（dependent pair）と考えられます。
+依存対は、%\index{シグマ型}% _シグマ型_（sigma type）と呼ばれることもあります。
+%\index{Gallina terms!proj1\_sig}%[proj1_sig]関数から抽出されるのは、この依存対のうちの一つめの構成要素です。
+Coqのヒューリスティックは、先に書いた結果の型が伝わるほどには賢くないので、ここでは明示的な[return]が必要です。
+
+(* By now, the reader is probably ready to believe that the new [pred_strong] leads to the same OCaml code as we have seen several times so far, and Coq does not disappoint. *)
+
+この新しいバージョンの[pred_strong]からも、これまでの例から期待されるとおり、今までと同一のOCamlコードが得られます。
+*)
 
 Extraction pred_strong3.
 
@@ -226,7 +330,15 @@ let pred_strong3 = function
   | S n' -> n'
 >>
 
-We have managed to reach a type that is, in a formal sense, the most expressive possible for [pred].  Any other implementation of the same type must have the same input-output behavior.  However, there is still room for improvement in making this kind of code easier to write.  Here is a version that takes advantage of tactic-based theorem proving.  We switch back to passing a separate proof argument instead of using a subset type for the function's input, because this leads to cleaner code.  (Recall that [False_rec] is the [Set]-level induction principle for [False], which can be used to produce a value in any [Set] given a proof of [False].) *)
+(* We have managed to reach a type that is, in a formal sense, the most expressive possible for [pred].  Any other implementation of the same type must have the same input-output behavior.  However, there is still room for improvement in making this kind of code easier to write.  Here is a version that takes advantage of tactic-based theorem proving.  We switch back to passing a separate proof argument instead of using a subset type for the function's input, because this leads to cleaner code.  (Recall that [False_rec] is the [Set]-level induction principle for [False], which can be used to produce a value in any [Set] given a proof of [False].) *)
+
+[pred]については、形式的な意味で、考えられる限りもっとも表現力がある型にたどり着きました。
+同じ型の他の実装は、入出力に対する挙動がすべて同じでなければなりません。
+しかし、コードを書きやすくするという方向では、まだ改善の余地があります。
+以下に示すのは、タクティクを使う定理証明を利用したバージョンです。
+関数に対する入力として部分集合型を使う代わりに、証明を別の引数で渡すスタイルに戻してコードを見やすくしています。
+（[False_rec]は、[Set]における[False]のための帰納法の原理です。[False]の証明を与えられると、任意の[Set]の値を生成します。）
+*)
 
 Definition pred_strong4 : forall n : nat, n > 0 -> {m : nat | n = S m}.
   refine (fun n =>
@@ -236,9 +348,20 @@ Definition pred_strong4 : forall n : nat, n > 0 -> {m : nat | n = S m}.
     end).
 
 (* begin thide *)
-  (** We build [pred_strong4] using tactic-based proving, beginning with a [Definition] command that ends in a period before a definition is given.  Such a command enters the interactive proving mode, with the type given for the new identifier as our proof goal.  It may seem strange to change perspective so implicitly between programming and proving, but recall that programs and proofs are two sides of the same coin in Coq, thanks to the Curry-Howard correspondence.
 
-     We do most of the work with the %\index{tactics!refine}%[refine] tactic, to which we pass a partial "proof" of the type we are trying to prove.  There may be some pieces left to fill in, indicated by underscores.  Any underscore that Coq cannot reconstruct with type inference is added as a proof subgoal.  In this case, we have two subgoals:
+(**
+(* We build [pred_strong4] using tactic-based proving, beginning with a [Definition] command that ends in a period before a definition is given.  Such a command enters the interactive proving mode, with the type given for the new identifier as our proof goal.  It may seem strange to change perspective so implicitly between programming and proving, but recall that programs and proofs are two sides of the same coin in Coq, thanks to the Curry-Howard correspondence. *)
+
+[pred_strong4]では、タクティクを使った証明を利用して定義を構築するため、定義を与える前にピリオドにより終了する形の[Definition]コマンドから開始しています。
+このようにコマンドとして[Definition]を使うと、対話証明モードに入り、新しい識別子には証明のゴールとして型が与えられます。
+暗黙のうちにプログラミングと証明に対する見方が入れ替わっていることにので奇妙に思えるかもしれませんが、CoqではCurry-Howard対応によってプログラムと証明は表裏一体であることを思い出しましょう。
+
+(* We do most of the work with the %\index{tactics!refine}%[refine] tactic, to which we pass a partial "proof" of the type we are trying to prove.  There may be some pieces left to fill in, indicated by underscores.  Any underscore that Coq cannot reconstruct with type inference is added as a proof subgoal.  In this case, we have two subgoals: *)
+
+上記では、型に対してこれから試みる「証明」の一部を%\index{tactics!refine}%[refine]に与えています。
+アンダースコア（[_]）にした箇所のうちいくつかは、埋めてあげる必要があるでしょう。
+Coqが型推論で構成できないアンダースコアは、すべて証明のサブゴールとして提示されます。
+この例では二つのサブゴールが提示されます。
 
 [[
 2 subgoals
@@ -251,9 +374,16 @@ Definition pred_strong4 : forall n : nat, n > 0 -> {m : nat | n = S m}.
 subgoal 2 is
 
  S n' = S n'
- ]]
+]]
 
-We can see that the first subgoal comes from the second underscore passed to [False_rec], and the second subgoal comes from the second underscore passed to [exist].  In the first case, we see that, though we bound the proof variable with an underscore, it is still available in our proof context.  It is hard to refer to underscore-named variables in manual proofs, but automation makes short work of them.  Both subgoals are easy to discharge that way, so let us back up and ask to prove all subgoals automatically. *)
+(* We can see that the first subgoal comes from the second underscore passed to [False_rec], and the second subgoal comes from the second underscore passed to [exist].  In the first case, we see that, though we bound the proof variable with an underscore, it is still available in our proof context.  It is hard to refer to underscore-named variables in manual proofs, but automation makes short work of them.  Both subgoals are easy to discharge that way, so let us back up and ask to prove all subgoals automatically. *)
+
+一つめのサブゴールは[False_rec]に渡している二つめのアンダースコアによるものであり、二つめのサブゴールは[exist]に渡している二つめのアンダースコアによるものです。
+前者については、証明を表す変数の束縛にアンダースコアを使っていますが、このように証明の文脈でアンダースコアを利用すること自体は可能です。
+変数の命名にアンダースコアを使うと、手作業の証明では参照が難しくなりますが、自動化がうまく対処してくれます。
+どちらのサブゴールも容易に対処できるものなので、巻き戻してすべてのサブゴールを自動で証明するように指示しましょう。
+
+*)
 
   Undo.
   refine (fun n =>
@@ -264,10 +394,18 @@ We can see that the first subgoal comes from the second underscore passed to [Fa
 (* end thide *)
 Defined.
 
-(** We end the "proof" with %\index{Vernacular commands!Defined}%[Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  (More formally, [Defined] marks an identifier as%\index{transparent}% _transparent_, allowing it to be unfolded; while [Qed] marks an identifier as%\index{opaque}% _opaque_, preventing unfolding.)  Let us see what our proof script constructed. *)
+(**
+(* We end the "proof" with %\index{Vernacular commands!Defined}%[Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  (More formally, [Defined] marks an identifier as%\index{transparent}% _transparent_, allowing it to be unfolded; while [Qed] marks an identifier as%\index{opaque}% _opaque_, preventing unfolding.)  Let us see what our proof script constructed. *)
+
+この「証明」を終えるときは、[Qed]ではなく%\index{Vernacular commands!Defined}%[Defined]を使いました。
+[Defined]では、構成した定義が引き続き見える状態になります。
+一方、[Qed]で証明を終えると、以降は証明の詳細が隠蔽されます。
+（より形式的に言うと、[Defined]は識別子に対して%\index{透明}% _透明_（transparent）であるという印を付けて展開可能にし、
+[Qed]は%\index{不透明}% _不透明_（opaque）という印を付けて展開できなくします。）
+*)
 
 Print pred_strong4.
-(** %\vspace{-.15in}% [[
+(** [[
 pred_strong4 = 
 fun n : nat =>
 match n as n0 return (n0 > 0 -> {m : nat | n0 = S m}) with
@@ -285,15 +423,23 @@ end
      : forall n : nat, n > 0 -> {m : nat | n = S m}
 ]]
 
-We see the code we entered, with some proofs filled in.  The first proof obligation, the second argument to [False_rec], is filled in with a nasty-looking proof term that we can be glad we did not enter by hand.  The second proof obligation is a simple reflexivity proof. *)
+(* We see the code we entered, with some proofs filled in.  The first proof obligation, the second argument to [False_rec], is filled in with a nasty-looking proof term that we can be glad we did not enter by hand.  The second proof obligation is a simple reflexivity proof. *)
+
+入力したコードに、いくつか証明が補完されていることがわかります。
+最初のサブゴールに対応する、[False_rec]の二つめの引数に入る「証明すべき責務」（proof obligation）は、とても手作業で入力する気にはならない醜悪な見た目の証明項で埋められています。
+もう一つのproof obligationである[exist]の二つめの引数には、反射性に関する単純な証明が入っています。
+*)
 
 Eval compute in pred_strong4 two_gt0.
-(** %\vspace{-.15in}% [[
+(**  [[
      = exist (fun m : nat => 2 = S m) 1 (eq_refl 2)
      : {m : nat | 2 = S m}
      ]]
 
-  A tactic modifier called %\index{tactics!abstract}%[abstract] can be helpful for producing shorter terms, by automatically abstracting subgoals into named lemmas. *)
+(* A tactic modifier called %\index{tactics!abstract}%[abstract] can be helpful for producing shorter terms, by automatically abstracting subgoals into named lemmas. *)
+
+サブゴールを自動的に抽象化して名前付きの補題にしてくれる、%\index{tactics!abstract}%[abstract]という便利なタクティク変更の仕組みもあります。
+*)
 
 (* begin thide *)
 Definition pred_strong4' : forall n : nat, n > 0 -> {m : nat | n = S m}.
@@ -307,7 +453,7 @@ Defined.
 Print pred_strong4'.
 (* end thide *)
 
-(** %\vspace{-.15in}% [[
+(**  [[
 pred_strong4' = 
 fun n : nat =>
 match n as n0 return (n0 > 0 -> {m : nat | n0 = S m}) with
@@ -321,7 +467,12 @@ end
      : forall n : nat, n > 0 -> {m : nat | n = S m}
 ]]
 
-We are almost done with the ideal implementation of dependent predecessor.  We can use Coq's syntax extension facility to arrive at code with almost no complexity beyond a Haskell or ML program with a complete specification in a comment.  In this book, we will not dwell on the details of syntax extensions; the Coq manual gives a straightforward introduction to them. *)
+(* We are almost done with the ideal implementation of dependent predecessor.  We can use Coq's syntax extension facility to arrive at code with almost no complexity beyond a Haskell or ML program with a complete specification in a comment.  In this book, we will not dwell on the details of syntax extensions; the Coq manual gives a straightforward introduction to them. *)
+
+依存型による前者関数の理想的な実装まで、あと一歩です。
+Coqにはシンタックスを拡張する機能があり、その機能を使えば、完全な仕様をコメントに含めたうえで、HaskellやMLのプログラムと比べても複雑さで見劣りがしないコードにできます。
+シンタックスの拡張について本書では詳しく触れませんが、Coqのマニュアルを見れば一目瞭然でしょう。
+*)
 
 Notation "!" := (False_rec _ _).
 Notation "[ e ]" := (exist _ e _).
@@ -334,7 +485,11 @@ Definition pred_strong5 : forall n : nat, n > 0 -> {m : nat | n = S m}.
     end); crush.
 Defined.
 
-(** By default, notations are also used in pretty-printing terms, including results of evaluation. *)
+(**
+(* By default, notations are also used in pretty-printing terms, including results of evaluation. *)
+
+[Notation]の設定は、評価結果を含め、項のプリティプリントにもデフォルトで使われます。
+*)
 
 Eval compute in pred_strong5 two_gt0.
 (** %\vspace{-.15in}% [[
@@ -342,7 +497,12 @@ Eval compute in pred_strong5 two_gt0.
      : {m : nat | 2 = S m}
      ]]
 
-  One other alternative is worth demonstrating.  Recent Coq versions include a facility called %\index{Program}%[Program] that streamlines this style of definition.  Here is a complete implementation using [Program].%\index{Vernacular commands!Obligation Tactic}\index{Vernacular commands!Program Definition}% *)
+(*  One other alternative is worth demonstrating.  Recent Coq versions include a facility called %\index{Program}%[Program] that streamlines this style of definition.  Here is a complete implementation using [Program].%\index{Vernacular commands!Obligation Tactic}\index{Vernacular commands!Program Definition}% *)
+
+もう一つ、説明しておくべきことがあります。
+Coqの比較的新しい機能として、ここで説明したスタイルでの定義を簡潔にできるようになる、%\index{Program}%[Program]という仕組みがあります。
+[Program]を使った完全な実装は次のようになります。%\index{Vernacular commands!Obligation Tactic}\index{Vernacular commands!Program Definition}%
+*)
 
 Obligation Tactic := crush.
 
@@ -352,7 +512,14 @@ Program Definition pred_strong6 (n : nat) (_ : n > 0) : {m : nat | n = S m} :=
     | S n' => n'
   end.
 
-(** Printing the resulting definition of [pred_strong6] yields a term very similar to what we built with [refine].  [Program] can save time in writing programs that use subset types.  Nonetheless, [refine] is often just as effective, and [refine] gives more control over the form the final term takes, which can be useful when you want to prove additional theorems about your definition.  [Program] will sometimes insert type casts that can complicate theorem proving. *)
+(**
+(* Printing the resulting definition of [pred_strong6] yields a term very similar to what we built with [refine].  [Program] can save time in writing programs that use subset types.  Nonetheless, [refine] is often just as effective, and [refine] gives more control over the form the final term takes, which can be useful when you want to prove additional theorems about your definition.  [Program] will sometimes insert type casts that can complicate theorem proving. *)
+
+[pred_strong6]による定義の結果を出力してみると、[refine]で組み立てた結果によく似た項が得られます。
+[Program]は、部分集合型を使ったプログラムを書く時間を節約してくれます。
+にもかかわらず、[refine]は十分に効率的であり、最終的な項の形もそれなりに自由に制御できるので、証明する定義に関連した定理をほかにも証明したい場合には都合がいいでしょう。
+[Program]は、定理の証明を複雑にする型キャストを挿入する場合もあります。
+*)
 
 Eval compute in pred_strong6 two_gt0.
 (** %\vspace{-.15in}% [[
@@ -360,8 +527,10 @@ Eval compute in pred_strong6 two_gt0.
      : {m : nat | 2 = S m}
      ]]
 
-In this case, we see that the new definition yields the same computational behavior as before. *)
+(* In this case, we see that the new definition yields the same computational behavior as before. *)
 
+この場合には、[Program]による定義でも、計算的な振る舞いは今までと同じになることがわかりました。
+*)
 
 (** * Decidable Proposition Types *)
 
