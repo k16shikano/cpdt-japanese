@@ -532,9 +532,19 @@ Eval compute in pred_strong6 two_gt0.
 この場合には、[Program]による定義でも、計算的な振る舞いは今までと同じになることがわかりました。
 *)
 
-(** * Decidable Proposition Types *)
+(**
+(* Decidable Proposition Types *)
 
-(** There is another type in the standard library that captures the idea of program values that indicate which of two propositions is true.%\index{Gallina terms!sumbool}% *)
+決定可能な命題の型
+*)
+
+(**
+(* There is another type in the standard library that captures the idea of program values that indicate which of two propositions is true.%\index{Gallina terms!sumbool}% *)
+
+「二つの命題のうちどちらが真か」は、プログラムの値として指し示せます。そのような値の型が
+
+%\index{Gallina terms!sumbool}%
+*)
 
 Print sumbool.
 (** %\vspace{-.15in}% [[
@@ -542,15 +552,28 @@ Inductive sumbool (A : Prop) (B : Prop) : Set :=
     left : A -> {A} + {B} | right : B -> {A} + {B}
 ]]
 
-Here, the constructors of [sumbool] have types written in terms of a registered notation for [sumbool], such that the result type of each constructor desugars to [sumbool A B].  We can define some notations of our own to make working with [sumbool] more convenient. *)
+(* Here, the constructors of [sumbool] have types written in terms of a registered notation for [sumbool], such that the result type of each constructor desugars to [sumbool A B].  We can define some notations of our own to make working with [sumbool] more convenient. *)
+
+[sumbool]の構成子である[left]および[right]は、[sumbool]用に予約されている表記であり、それぞれの構成子の結果の型は、構文糖衣を展開すると[sumbool A B]になります。
+もっと使いやすい別の表記を定義してもかまいません。
+*)
 
 Notation "'Yes'" := (left _ _).
 Notation "'No'" := (right _ _).
 Notation "'Reduce' x" := (if x then Yes else No) (at level 50).
 
-(** The %\coqdocnotation{%#<tt>#Reduce#</tt>#%}% notation is notable because it demonstrates how [if] is overloaded in Coq.  The [if] form actually works when the test expression has any two-constructor inductive type.  Moreover, in the [then] and [else] branches, the appropriate constructor arguments are bound.  This is important when working with [sumbool]s, when we want to have the proof stored in the test expression available when proving the proof obligations generated in the appropriate branch.
+(**
+(* The %\coqdocnotation{%#<tt>#Reduce#</tt>#%}% notation is notable because it demonstrates how [if] is overloaded in Coq.  The [if] form actually works when the test expression has any two-constructor inductive type.  Moreover, in the [then] and [else] branches, the appropriate constructor arguments are bound.  This is important when working with [sumbool]s, when we want to have the proof stored in the test expression available when proving the proof obligations generated in the appropriate branch. *)
 
-Now we can write [eq_nat_dec], which compares two natural numbers, returning either a proof of their equality or a proof of their inequality. *)
+%\coqdocnotation{%#<tt>#Reduce#</tt>#%}%は、Coqにおいて[if]をオーバーロードする方法の一例として注目に値します。
+[Reduce]では、[if]形式が条件式として構成子を二つ持つような任意の帰納型を取ります。
+そして、その構成子のうち適切なほうが[then]節および[else]節で束縛されます。
+[sumbool]を扱っていて、いずれかの節で生成されるproof obligationの証明に際して条件式に格納された証明を利用したいときは、この束縛が重要になります。
+
+(* Now we can write [eq_nat_dec], which compares two natural numbers, returning either a proof of their equality or a proof of their inequality. *)
+
+二つの自然数を比較し、それらが等価であることの証明、もしくは不等価であることの証明を返す[eq_nat_dec]を定義してみましょう。
+*)
 
 Definition eq_nat_dec : forall n m : nat, {n = m} + {n <> m}.
   refine (fix f (n m : nat) : {n = m} + {n <> m} :=
@@ -574,9 +597,14 @@ Eval compute in eq_nat_dec 2 3.
      : {2 = 3} + {2 <> 3}
      ]]
 
-Note that the %\coqdocnotation{%#<tt>#Yes#</tt>#%}% and %\coqdocnotation{%#<tt>#No#</tt>#%}% notations are hiding proofs establishing the correctness of the outputs.
+(* Note that the %\coqdocnotation{%#<tt>#Yes#</tt>#%}% and %\coqdocnotation{%#<tt>#No#</tt>#%}% notations are hiding proofs establishing the correctness of the outputs.*)
 
-   Our definition extracts to reasonable OCaml code. *)
+%\coqdocnotation{%#<tt>#Yes#</tt>#%}%および%\coqdocnotation{%#<tt>#No#</tt>#%}%が、出力の正しさを確立する、隠された証明を表しています。
+
+(* Our definition extracts to reasonable OCaml code. *)
+
+上記の定義からは妥当なOCamlのコードが抽出できます。
+*)
 
 Extraction eq_nat_dec.
 
@@ -594,13 +622,24 @@ let rec eq_nat_dec n m =
                  | S m' -> eq_nat_dec n' m')
 >>
 
-Proving this kind of decidable equality result is so common that Coq comes with a tactic for automating it.%\index{tactics!decide equality}% *)
+(* Proving this kind of decidable equality result is so common that Coq comes with a tactic for automating it.%\index{tactics!decide equality}% *)
+
+このような等価性の決定可能性に対する証明は頻出するので、Coqには自動化のためのタクティクがあります%\index{タクティク!decide equality}%。
+*)
 
 Definition eq_nat_dec' (n m : nat) : {n = m} + {n <> m}.
   decide equality.
 Defined.
 
-(** Curious readers can verify that the [decide equality] version extracts to the same OCaml code as our more manual version does.  That OCaml code had one undesirable property, which is that it uses <<Left>> and <<Right>> constructors instead of the Boolean values built into OCaml.  We can fix this, by using Coq's facility for mapping Coq inductive types to OCaml variant types.%\index{Vernacular commands!Extract Inductive}% *)
+(**
+(* Curious readers can verify that the [decide equality] version extracts to the same OCaml code as our more manual version does.  That OCaml code had one undesirable property, which is that it uses <<Left>> and <<Right>> constructors instead of the Boolean values built into OCaml.  We can fix this, by using Coq's facility for mapping Coq inductive types to OCaml variant types.%\index{Vernacular commands!Extract Inductive}% *)
+
+興味がある読者は、[decide equality]を使った上記の証明からも、手作業で書いた先の証明によるものと同じOCamlのコードが抽出されることを確かめてみましょう。
+OCamlのコードには、一点、非決定的な性質があります。
+それは、OCamlに埋め込まれているブール値ではなく、<<Left>>および<<Right>>という構成子が使われていることです。
+Coqの帰納型をOCamlのヴァリアント型に写す機能を使えば、この非決定性を修正できます。
+%\index{Vernacular commands!Extract Inductive}%
+*)
 
 Extract Inductive sumbool => "bool" ["true" "false"].
 Extraction eq_nat_dec'.
@@ -618,24 +657,34 @@ let rec eq_nat_dec' n m0 =
                  | O -> false
                  | S n1 -> eq_nat_dec' n0 n1)
 >>
+
+(* We can build "smart" versions of the usual Boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of Boolean "or." *)
+
+一般的なBooleanの演算子を使う「スマート」なバージョンを組み立てて、それを証明付きのプログラムで上手に使うことも可能です。
+たとえば、[sumbool]用の「[||]」はこのように組み立てられます。
 *)
-
-(** %\smallskip%
-
-We can build "smart" versions of the usual Boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of Boolean "or." *)
 
 (* EX: Write a function that decides if an element belongs to a list. *)
 
 (* begin thide *)
 Notation "x || y" := (if x then Yes else Reduce y).
 
-(** Let us use it for building a function that decides list membership.  We need to assume the existence of an equality decision procedure for the type of list elements. *)
+(**
+(* Let us use it for building a function that decides list membership.  We need to assume the existence of an equality decision procedure for the type of list elements. *)
+
+この[sumbool]を使って、ある要素がリストに含まれるかどうかを決定する関数を作ってみましょう。
+リストの要素の型に対して等価性を決定する[A_eq_dec]という手続きの存在を仮定します。
+*)
 
 Section In_dec.
   Variable A : Set.
   Variable A_eq_dec : forall x y : A, {x = y} + {x <> y}.
 
-  (** The final function is easy to write using the techniques we have developed so far. *)
+  (**
+  (* The final function is easy to write using the techniques we have developed so far. *)
+  
+  作りたい関数は、ここまでの例で説明した方法で簡単に書けます。
+  *)
 
   Definition In_dec : forall (x : A) (ls : list A), {In x ls} + {~ In x ls}.
     refine (fix f (x : A) (ls : list A) : {In x ls} + {~ In x ls} :=
@@ -659,7 +708,10 @@ Eval compute in In_dec eq_nat_dec 3 (1 :: 2 :: nil).
      : {In 3 (1 :: 2 :: nil)} + { ~ In 3 (1 :: 2 :: nil)}
      ]]
 
-The [In_dec] function has a reasonable extraction to OCaml. *)
+(* The [In_dec] function has a reasonable extraction to OCaml. *)
+
+[In_dec]関数からは妥当なOCamlのコードが抽出できます。
+*)
 
 Extraction In_dec.
 (* end thide *)
@@ -676,24 +728,42 @@ let rec in_dec a_eq_dec x = function
          | false -> in_dec a_eq_dec x ls')
 >>
 
-This is more or the less code for the corresponding function from the OCaml standard library. *)
+(* This is more or less the code for the corresponding function from the OCaml standard library. *)
 
+このコードは、おおむねOCamlの標準ライブラリにある関数のコードに対応しています。
+*)
 
-(** * Partial Subset Types *)
+(**
 
-(** Our final implementation of dependent predecessor used a very specific argument type to ensure that execution could always complete normally.  Sometimes we want to allow execution to fail, and we want a more principled way of signaling failure than returning a default value, as [pred] does for [0].  One approach is to define this type family %\index{Gallina terms!maybe}%[maybe], which is a version of [sig] that allows obligation-free failure. *)
+(* * Partial Subset Types *)
+* 部分的な部分集合型
+
+(* Our final implementation of dependent predecessor used a very specific argument type to ensure that execution could always complete normally.  Sometimes we want to allow execution to fail, and we want a more principled way of signaling failure than returning a default value, as [pred] does for [0].  One approach is to define this type family %\index{Gallina terms!maybe}%[maybe], which is a version of [sig] that allows obligation-free failure. *)
+
+依存型による前者関数の最後の実装例は、「実行すれば常に正常に完了する」ことを表すとても特別な引数の型を使う方法です。
+実行が失敗で完了するという状況も許容したいので、失敗を表すのにデフォルトの値（[pred]の場合に[0]）を使うのではなく、もっと規律正しい方法が必要です。
+そのための手法のひとつとして、proof obligationなしに失敗を許容するような[sig]型の一種である%\index{Gallina terms!maybe}%[maybe]を使うという手があります。
+*)
 
 Inductive maybe (A : Set) (P : A -> Prop) : Set :=
 | Unknown : maybe P
 | Found : forall x : A, P x -> maybe P.
 
-(** We can define some new notations, analogous to those we defined for subset types. *)
+(**
+(* We can define some new notations, analogous to those we defined for subset types. *)
+
+部分集合型のときのように、[maybe]型についても同じような記法を定義できます。
+*)
 
 Notation "{{ x | P }}" := (maybe (fun x => P)).
 Notation "??" := (Unknown _).
 Notation "[| x |]" := (Found _ x _).
 
-(** Now our next version of [pred] is trivial to write. *)
+(**
+(* Now our next version of [pred] is trivial to write. *)
+
+上記の記法を使って[pred]を簡単に書けます。
+*)
 
 Definition pred_strong7 : forall n : nat, {{m | n = S m}}.
   refine (fun n =>
@@ -704,19 +774,25 @@ Definition pred_strong7 : forall n : nat, {{m | n = S m}}.
 Defined.
 
 Eval compute in pred_strong7 2.
-(** %\vspace{-.15in}% [[
+(** [[
      = [|1|]
      : {{m | 2 = S m}}
-      ]]
-     *)
+    ]]
+*)
 
 Eval compute in pred_strong7 0.
-(** %\vspace{-.15in}% [[
+(** [[
      = ??
      : {{m | 0 = S m}}
      ]]
 
-     Because we used [maybe], one valid implementation of the type we gave [pred_strong7] would return [??] in every case.  We can strengthen the type to rule out such vacuous implementations, and the type family %\index{Gallina terms!sumor}%[sumor] from the standard library provides the easiest starting point.  For type [A] and proposition [B], [A + {B}] desugars to [sumor A B], whose values are either values of [A] or proofs of [B]. *)
+(* Because we used [maybe], one valid implementation of the type we gave [pred_strong7] would return [??] in every case.  We can strengthen the type to rule out such vacuous implementations, and the type family %\index{Gallina terms!sumor}%[sumor] from the standard library provides the easiest starting point.  For type [A] and proposition [B], [A + {B}] desugars to [sumor A B], whose values are either values of [A] or proofs of [B]. *)
+
+[pred_strong7]の型は、[maybe]を使っているので、「どのような場合についても[??]を返す」という実装でも有効になってしまいます。
+もっと強い型を使うことで、そうした意味のない実装を排除できます。
+手始めに、標準ライブラリの%\index{Gallina terms!sumor}%[sumor]という型族を使ってみましょう。
+型[A]および命題[B]について、[A + {B}]という構文糖衣が展開されたものが[sumor A B]です。その値は、「[A]の値もしくは[B]の証明のいずれか」を表します。
+*)
 
 Print sumor.
 (** %\vspace{-.15in}% [[
@@ -724,12 +800,23 @@ Inductive sumor (A : Type) (B : Prop) : Type :=
     inleft : A -> A + {B} | inright : B -> A + {B}
 ]]
 
-We add notations for easy use of the [sumor] constructors.  The second notation is specialized to [sumor]s whose [A] parameters are instantiated with regular subset types, since this is how we will use [sumor] below. *)
+(* We add notations for easy use of the [sumor] constructors.  The second notation is specialized to [sumor]s whose [A] parameters are instantiated with regular subset types, since this is how we will use [sumor] below. *)
+
+[sumor]の構成子に対する便利な記法を二つ追加します。
+二つめは、「[sumor]の変数のうち[A]のほうが、通常の部分集合型で具体化されているもの」に特化した記法です。
+この後、[sumor]をそのように使うので、このような記法をここで用意しました。
+*)
 
 Notation "!!" := (inright _ _).
 Notation "[|| x ||]" := (inleft _ [x]).
 
-(** Now we are ready to give the final version of possibly failing predecessor.  The [sumor]-based type that we use is maximally expressive; any implementation of the type has the same input-output behavior. *)
+(**
+(* Now we are ready to give the final version of possibly failing predecessor.  The [sumor]-based type that we use is maximally expressive; any implementation of the type has the same input-output behavior. *)
+
+ここまでの準備で、「失敗するかもしれない前者関数」の最終バージョンが書けます。
+下記の例の[sumor]を使った型は、とても表現力が高いものになっています。
+この型に対するどのような実装も、入出力に関して同じ振る舞いを示します。
+*)
 
 Definition pred_strong8 : forall n : nat, {m : nat | n = S m} + {n = 0}.
   refine (fun n =>
@@ -740,25 +827,34 @@ Definition pred_strong8 : forall n : nat, {m : nat | n = S m} + {n = 0}.
 Defined.
 
 Eval compute in pred_strong8 2.
-(** %\vspace{-.15in}% [[
+(** [[
      = [||1||]
      : {m : nat | 2 = S m} + {2 = 0}
-     ]]
-     *)
+    ]]
+*)
 
 Eval compute in pred_strong8 0.
-(** %\vspace{-.15in}% [[
+(** [[
      = !!
      : {m : nat | 0 = S m} + {0 = 0}
-     ]]
-     *)
+    ]]
 
-(** As with our other maximally expressive [pred] function, we arrive at quite simple output values, thanks to notations. *)
+(* As with our other maximally expressive [pred] function, we arrive at quite simple output values, thanks to notations. *)
 
+この[pred]関数は、記法をうまく用意したおかげで、きわめて表現力が高いながら実に簡潔に値が出力されています。
+*)
 
-(** * Monadic Notations *)
+(**
+(* * Monadic Notations *)
 
-(** We can treat [maybe] like a monad%~\cite{Monads}\index{monad}\index{failure monad}%, in the same way that the Haskell <<Maybe>> type is interpreted as a failure monad.  Our [maybe] has the wrong type to be a literal monad, but a "bind"-like notation will still be helpful.  %Note that the notation definition uses an ASCII \texttt{<-}, while later code uses (in this rendering) a nicer left arrow $\leftarrow$.% *)
+* モナド記法
+
+(* We can treat [maybe] like a monad%~\cite{Monads}\index{monad}\index{failure monad}%, in the same way that the Haskell <<Maybe>> type is interpreted as a failure monad.  Our [maybe] has the wrong type to be a literal monad, but a "bind"-like notation will still be helpful.  %Note that the notation definition uses an ASCII \texttt{<-}, while later code uses (in this rendering) a nicer left arrow $\leftarrow$.% *)
+
+[maybe]は、Haskellの<<Maybe>>が失敗を表すモナドとして解釈できるのと同じく、%~\cite{Monads}\index{モナド}\index{失敗を表すモナド}%モナドとして扱えます。
+[maybe]の型は、文字通りのモナドにはなれないのですが、それでもバインドのような記法が使えると便利です。
+なお、下記の記法の定義ではASCII文字による%\texttt{<-}%を使っていますが、その後のコード例では、この記法を表すのに左向き矢印（$\leftarrow$）を使います。
+*)
 
 Notation "x <- e1 ; e2" := (match e1 with
                              | Unknown => ??
@@ -766,9 +862,19 @@ Notation "x <- e1 ; e2" := (match e1 with
                            end)
 (right associativity, at level 60).
 
-(** The meaning of [x <- e1; e2] is: First run [e1].  If it fails to find an answer, then announce failure for our derived computation, too.  If [e1] _does_ find an answer, pass that answer on to [e2] to find the final result.  The variable [x] can be considered bound in [e2].
+(**
+(* The meaning of [x <- e1; e2] is: First run [e1].  If it fails to find an answer, then announce failure for our derived computation, too.  If [e1] _does_ find an answer, pass that answer on to [e2] to find the final result.  The variable [x] can be considered bound in [e2]. *)
 
-   This notation is very helpful for composing richly typed procedures.  For instance, here is a very simple implementation of a function to take the predecessors of two naturals at once. *)
+[x <- e1; e2]の意味は、「最初に[e1]を実行する」です。
+答えを見つけるのに失敗したら、計算によって導出されたものについても、失敗であると通告します。
+[e1]が確かに答えを見つけたら、その答えを[e2]に渡し、最終的な結果を探します。
+[x]は、[e2]において束縛されているとみなされます。
+
+(* This notation is very helpful for composing richly typed procedures.  For instance, here is a very simple implementation of a function to take the predecessors of two naturals at once. *)
+
+豊かな型を持つ手続きを組み合わせるときには、このような記法がとても便利です。
+以下の例は、二つの自然数の前者を一度に見つける関数の実装例です。
+*)
 
 (* EX: Write a function that tries to compute predecessors of two [nat]s at once. *)
 
@@ -781,7 +887,11 @@ Definition doublePred : forall n1 n2 : nat, {{p | n1 = S (fst p) /\ n2 = S (snd 
 Defined.
 (* end thide *)
 
-(** We can build a [sumor] version of the "bind" notation and use it to write a similarly straightforward version of this function.  %Again, the notation definition exposes the ASCII syntax with an operator \texttt{<-{}-}, while the later code uses a nicer long left arrow $\longleftarrow$.% *)
+(**
+(* We can build a [sumor] version of the "bind" notation and use it to write a similarly straightforward version of this function.  %Again, the notation definition exposes the ASCII syntax with an operator \texttt{<-{}-}, while the later code uses a nicer long left arrow $\longleftarrow$.% *)
+
+[sumor]に対しても同じような記法を定義し、それを使って上記の関数を定義することも簡単です。
+（この例でも、記法の定義では演算子をASCII文字による\texttt{<--}で表しますが、その後のコード例ではこれを$\longleftarrow$で表しています。）
 
 (** %\def\indash{-}\catcode`-=13\def-{\indash\kern0pt }% *)
 
@@ -807,8 +917,11 @@ Definition doublePred' : forall n1 n2 : nat,
 Defined.
 (* end thide *)
 
-(** This example demonstrates how judicious selection of notations can hide complexities in the rich types of programs. *)
+(**
+(* This example demonstrates how judicious selection of notations can hide complexities in the rich types of programs. *)
 
+この例からも、型が豊かなプログラムでは記法を上手に決めることで複雑さを隠せることがわかります。
+*)
 
 (** * A Type-Checking Example *)
 
