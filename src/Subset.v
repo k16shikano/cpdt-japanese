@@ -923,9 +923,17 @@ Defined.
 この例からも、型が豊かなプログラムでは記法を上手に決めることで複雑さを隠せることがわかります。
 *)
 
-(** * A Type-Checking Example *)
+(**
+(* * A Type-Checking Example *)
 
-(** We can apply these specification types to build a certified type checker for a simple expression language. *)
+* 型検査の例
+*)
+
+(**
+(* We can apply these specification types to build a certified type checker for a simple expression language. *)
+
+本章で説明した仕様のための型（specification type）を使い、簡潔な式からなる言語のための証明付きの型検査器を作ってみましょう。
+*)
 
 Inductive exp : Set :=
 | Nat : nat -> exp
@@ -933,7 +941,11 @@ Inductive exp : Set :=
 | Bool : bool -> exp
 | And : exp -> exp -> exp.
 
-(** We define a simple language of types and its typing rules, in the style introduced in Chapter 4. *)
+(**
+(* We define a simple language of types and its typing rules, in the style introduced in Chapter 4. *)
+
+簡潔な型の言語と、その型付け規則を、第4章と同じ要領で定義します。
+*)
 
 Inductive type : Set := TNat | TBool.
 
@@ -951,19 +963,36 @@ Inductive hasType : exp -> type -> Prop :=
   -> hasType e2 TBool
   -> hasType (And e1 e2) TBool.
 
-(** It will be helpful to have a function for comparing two types.  We build one using [decide equality]. *)
+(**
+(* It will be helpful to have a function for comparing two types.  We build one using [decide equality]. *)
+
+二つの型を比較する関数があると便利です。[decide equality]を使って、そのような関数を作ります。
+*)
 
 (* begin thide *)
 Definition eq_type_dec : forall t1 t2 : type, {t1 = t2} + {t1 <> t2}.
   decide equality.
 Defined.
 
-(** Another notation complements the monadic notation for [maybe] that we defined earlier.  Sometimes we want to include "assertions" in our procedures.  That is, we want to run a decision procedure and fail if it fails; otherwise, we want to continue, with the proof that it produced made available to us.  This infix notation captures that idea, for a procedure that returns an arbitrary two-constructor type. *)
+(**
+(* Another notation complements the monadic notation for [maybe] that we defined earlier.  Sometimes we want to include "assertions" in our procedures.  That is, we want to run a decision procedure and fail if it fails; otherwise, we want to continue, with the proof that it produced made available to us.  This infix notation captures that idea, for a procedure that returns an arbitrary two-constructor type. *)
+
+もう一つ、先の例で定義した[maybe]のモナド記法を補完する記法を用意しておきましょう。
+「失敗する決定手続きを実行したら失敗し、そうでなければ、生成される証明を伴って実行を継続する」といった具合に、手続きを進める「前提条件」を書きたい場合があります。
+下記の中置記法は、構成子を二つ持つような任意の型を返す手続きに対し、それを書けるようにするものです。
+*)
 
 Notation "e1 ;; e2" := (if e1 then e2 else ??)
   (right associativity, at level 60).
 
-(** With that notation defined, we can implement a [typeCheck] function, whose code is only more complex than what we would write in ML because it needs to include some extra type annotations.  Every [[|e|]] expression adds a [hasType] proof obligation, and [crush] makes short work of them when we add [hasType]'s constructors as hints. *)
+(**
+(* With that notation defined, we can implement a [typeCheck] function, whose code is only more complex than what we would write in ML because it needs to include some extra type annotations.  Every [[|e|]] expression adds a [hasType] proof obligation, and [crush] makes short work of them when we add [hasType]'s constructors as hints. *)
+
+この記法を使って[typeCheck]関数を実装しましょう
+余分な型注釈が必要なので複雑に見えますが、それ以外はMLで書くようなコードと同じです。
+どんな式[[|e|]]にも[hasType]というproof obligationが付き、[hasType]を構成子に関するヒントとして与えていることで、それらの証明は[crush]が片づけてくれます。
+*)
+
 (* end thide *)
 
 Definition typeCheck : forall e : exp, {{t | hasType e t}}.
@@ -990,29 +1019,36 @@ Definition typeCheck : forall e : exp, {{t | hasType e t}}.
 (* end thide *)
 Defined.
 
-(** Despite manipulating proofs, our type checker is easy to run. *)
+(**
+(* Despite manipulating proofs, our type checker is easy to run. *)
+
+証明を扱っているにもかかわらず、この型検査は簡単に実行できます。
+*)
 
 Eval simpl in typeCheck (Nat 0).
-(** %\vspace{-.15in}% [[
+(**  [[
      = [|TNat|]
      : {{t | hasType (Nat 0) t}}
      ]]
      *)
 
 Eval simpl in typeCheck (Plus (Nat 1) (Nat 2)).
-(** %\vspace{-.15in}% [[
+(**  [[
      = [|TNat|]
      : {{t | hasType (Plus (Nat 1) (Nat 2)) t}}
      ]]
      *)
 
 Eval simpl in typeCheck (Plus (Nat 1) (Bool false)).
-(** %\vspace{-.15in}% [[
+(**  [[
      = ??
      : {{t | hasType (Plus (Nat 1) (Bool false)) t}}
      ]]
 
-The type checker also extracts to some reasonable OCaml code. *)
+(* The type checker also extracts to some reasonable OCaml code. *)
+
+この型検査器からOCamlの妥当なコードを抽出することもできます。
+*)
 
 Extraction typeCheck.
 
@@ -1052,15 +1088,22 @@ let rec typeCheck = function
 >>
 *)
 
-(** %\smallskip%
+(**
+(* We can adapt this implementation to use [sumor], so that we know our type-checker only fails on ill-typed inputs.  First, we define an analogue to the "assertion" notation. *)
 
-We can adapt this implementation to use [sumor], so that we know our type-checker only fails on ill-typed inputs.  First, we define an analogue to the "assertion" notation. *)
+この実装を[sumor]を使って改良すれば、正しく型付けされていない場合にのみ、型検査器が失敗することがわかるようになります。
+まずは、「前提条件」の記法に対応する記法を定義します。
+*)
 
 (* begin thide *)
 Notation "e1 ;;; e2" := (if e1 then e2 else !!)
   (right associativity, at level 60).
 
-(** Next, we prove a helpful lemma, which states that a given expression can have at most one type. *)
+(**
+(* Next, we prove a helpful lemma, which states that a given expression can have at most one type. *)
+
+次に、「与えられた式は高々1つ型を持つ」という補題を証明します。
+*)
 
 Lemma hasType_det : forall e t1,
   hasType e t1
@@ -1069,20 +1112,34 @@ Lemma hasType_det : forall e t1,
   induction 1; inversion 1; crush.
 Qed.
 
-(** Now we can define the type-checker.  Its type expresses that it only fails on untypable expressions. *)
+(**
+(* Now we can define the type-checker.  Its type expresses that it only fails on untypable expressions. *)
+
+型検査器を定義しましょう。
+今度の型は、型付けできない式に対してだけ失敗することを表したものになっています。
+*)
 
 (* end thide *)
 Definition typeCheck' : forall e : exp, {t : type | hasType e t} + {forall t, ~ hasType e t}.
 (* begin thide *)
   Hint Constructors hasType.
 
-  (** We register all of the typing rules as hints. *)
+  (**
+  (* We register all of the typing rules as hints. *)
+  上記により、すべての型付け規則をヒントとして登録します。
+  *)
 
   Hint Resolve hasType_det.
 
-  (** The lemma [hasType_det] will also be useful for proving proof obligations with contradictory contexts.  Since its statement includes [forall]-bound variables that do not appear in its conclusion, only [eauto] will apply this hint. *)
+  (**
+  (* The lemma [hasType_det] will also be useful for proving proof obligations with contradictory contexts.  Since its statement includes [forall]-bound variables that do not appear in its conclusion, only [eauto] will apply this hint. *)
+  補題[hasType_det]は、矛盾するコンテキストでproof obligationを証明するのにも使えます。
+  この補題の主張には[forall]で束縛された変数が含まれていますが、これは補題の結論には出てこないので、[eauto]だけがこのヒントを適用することになります。
 
-  (** Finally, the implementation of [typeCheck] can be transcribed literally, simply switching notations as needed. *)
+  (* Finally, the implementation of [typeCheck] can be transcribed literally, simply switching notations as needed. *)
+  
+  あとは、必要な記法は置き換えながら[typeCheck]の実装をそのまま引き写せます。
+  *)
 
   refine (fix F (e : exp) : {t : type | hasType e t} + {forall t, ~ hasType e t} :=
     match e return {t : type | hasType e t} + {forall t, ~ hasType e t} with
@@ -1102,15 +1159,27 @@ Definition typeCheck' : forall e : exp, {t : type | hasType e t} + {forall t, ~ 
         [||TBool||]
     end); clear F; crush' tt hasType; eauto.
 
-  (** We clear [F], the local name for the recursive function, to avoid strange proofs that refer to recursive calls that we never make.  Such a step is usually warranted when defining a recursive function with [refine].  The [crush] variant %\index{tactics!crush'}%[crush'] helps us by performing automatic inversion on instances of the predicates specified in its second argument.  Once we throw in [eauto] to apply [hasType_det] for us, we have discharged all the subgoals. *)
-(* end thide *)
+  (**
+  (* We clear [F], the local name for the recursive function, to avoid strange proofs that refer to recursive calls that we never make.  Such a step is usually warranted when defining a recursive function with [refine].  The [crush] variant %\index{tactics!crush'}%[crush'] helps us by performing automatic inversion on instances of the predicates specified in its second argument.  Once we throw in [eauto] to apply [hasType_det] for us, we have discharged all the subgoals. *)
 
+[F]という、再帰関数に対する局所的な名前を[clear]しているのは、ありえない再帰呼び出しを参照するおかしな証明を回避するためです。
+[refine]を使って再帰関数を定義するときは、通常、そのようなステップが保証されます。
+%\index{tactics!crush'}%[crush']は、[crush]の亜種で、二つめの引数で指定された命題のインスタンスを自動的に反転してくれます。
+[eauto]に対して[hasType_det]を適用するように指示した段階で、サブゴールがすべて証明されます。
+*)
+(* end thide *)
 
 Defined.
 
-(** The short implementation here hides just how time-saving automation is.  Every use of one of the notations adds a proof obligation, giving us 12 in total.  Most of these obligations require multiple inversions and either uses of [hasType_det] or applications of [hasType] rules.
+(**
+(* The short implementation here hides just how time-saving automation is.  Every use of one of the notations adds a proof obligation, giving us 12 in total.  Most of these obligations require multiple inversions and either uses of [hasType_det] or applications of [hasType] rules.
 
    Our new function remains easy to test: *)
+
+出来上がった短い証明を見るだけでは、自動化がどれくらい時間を節約してくれるものか、わかりにくいでしょう。
+記法を一つ使うたびにproof obligationが追加されるので、本来は合計で12個の証明をする責務が発生するところです。
+それらの多くでは、複数回の反転と、[hasType_det]の利用、もしくは[hasType]の型付け規則の適用が必要になります。
+*)
 
 Eval simpl in typeCheck' (Nat 0).
 (** %\vspace{-.15in}% [[
@@ -1135,4 +1204,7 @@ Eval simpl in typeCheck' (Plus (Nat 1) (Bool false)).
        {(forall t : type, ~ hasType (Plus (Nat 1) (Bool false)) t)}
        ]]
 
-The results of simplifying calls to [typeCheck'] look deceptively similar to the results for [typeCheck], but now the types of the results provide more information. *)
+(* The results of simplifying calls to [typeCheck'] look deceptively similar to the results for [typeCheck], but now the types of the results provide more information. *)
+
+[typeCheck']の呼び出しを[simpl]した結果は、見かけはともかく[typeCheck]の結果とよく似ていますが、その型からはより多くの情報が得られます。
+*)
