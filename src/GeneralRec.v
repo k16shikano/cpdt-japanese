@@ -19,16 +19,47 @@ Set Asymmetric Patterns.
 (* end hide *)
 
 
-(** %\chapter{General Recursion}% *)
+(**
+(* %\chapter{General Recursion}% *)
+%\chapter{一般的再帰}%
 
-(** Termination of all programs is a crucial property of Gallina.  Non-terminating programs introduce logical inconsistency, where any theorem can be proved with an infinite loop.  Coq uses a small set of conservative, syntactic criteria to check termination of all recursive definitions.  These criteria are insufficient to support the natural encodings of a variety of important programming idioms.  Further, since Coq makes it so convenient to encode mathematics computationally, with functional programs, we may find ourselves wanting to employ more complicated recursion in mathematical definitions.
+(**
+(* Termination of all programs is a crucial property of Gallina.  Non-terminating programs introduce logical inconsistency, where any theorem can be proved with an infinite loop.  Coq uses a small set of conservative, syntactic criteria to check termination of all recursive definitions.  These criteria are insufficient to support the natural encodings of a variety of important programming idioms.  Further, since Coq makes it so convenient to encode mathematics computationally, with functional programs, we may find ourselves wanting to employ more complicated recursion in mathematical definitions. *)
 
-   What exactly are the conservative criteria that we run up against?  For _recursive_ definitions, recursive calls are only allowed on _syntactic subterms_ of the original primary argument, a restriction known as%\index{primitive recursion}% _primitive recursion_.  In fact, Coq's handling of reflexive inductive types (those defined in terms of functions returning the same type) gives a bit more flexibility than in traditional primitive recursion, but the term is still applied commonly.  In Chapter 5, we saw how _co-recursive_ definitions are checked against a syntactic guardedness condition that guarantees productivity.
+Gallinaにとって、すべてのプログラムが停止するという性質はとても重要です。
+停止しないプログラムは論理の不正後を引き起こし、任意の定理が無限ループによって証明できてしまいます。
+Coqでは、すべての再帰的な定義が停止することを、シンタックスに対する少数の保守的な条件によって確かめます。
+これらの条件は、プログラミングでよく使われる多様なイディオムをCoqでも自然に利用できるようにするには不十分です。
+さらに、関数プログラミングを使って数学を計算的に扱うのに便利なCoqでは、より複雑な再帰を数学的な定義で使いたくなることもあるでしょう。
 
-   Many natural recursion patterns satisfy neither condition.  For instance, there is our simple running example in this chapter, merge sort.  We will study three different approaches to more flexible recursion, and the latter two of the approaches will even support definitions that may fail to terminate on certain inputs, without any up-front characterization of which inputs those may be.
+(* What exactly are the conservative criteria that we run up against?  For _recursive_ definitions, recursive calls are only allowed on _syntactic subterms_ of the original primary argument, a restriction known as%\index{primitive recursion}% _primitive recursion_.  In fact, Coq's handling of reflexive inductive types (those defined in terms of functions returning the same type) gives a bit more flexibility than in traditional primitive recursion, but the term is still applied commonly.  In Chapter 5, we saw how _co-recursive_ definitions are checked against a syntactic guardedness condition that guarantees productivity. *)
 
-   Before proceeding, it is important to note that the problem here is not as fundamental as it may appear.  The final example of Chapter 5 demonstrated what is called a%\index{deep embedding}% _deep embedding_ of the syntax and semantics of a programming language.  That is, we gave a mathematical definition of a language of programs and their meanings.  This language clearly admitted non-termination, and we could think of writing all our sophisticated recursive functions with such explicit syntax types.  However, in doing so, we forfeit our chance to take advantage of Coq's very good built-in support for reasoning about Gallina programs.  We would rather use a%\index{shallow embedding}% _shallow embedding_, where we model informal constructs by encoding them as normal Gallina programs.  Each of the three techniques of this chapter follows that style. *)
+ここで懸念材料となっている保守的な条件とは、正確にはどんなものでしょうか。
+_[再帰的]_な定義においては、もとの主引数の_[シンタックス上の部分項]_にのみ再帰呼び出しが許されます。
+この制限は%\index{プリミティブな再帰}% _[プリミティブな再帰]_（primitive recursion）として知られているものです。
+実を言うとCoqにおけるプリミティブな再帰は、相互再帰型（同じ型を返す複数の関数を使って定義された型）の扱いについて、伝統的なものに比べると多少柔軟になっています。
+しかし、通例として、プリミティブな再帰という同じ用語が使われています。
+第5章では、_[余再帰的]_な定義について、生成性を保証するためにシンタックスに対するガード条件が調べられることを見ました。
 
+(* Many natural recursion patterns satisfy neither condition.  For instance, there is our simple running example in this chapter, merge sort.  We will study three different approaches to more flexible recursion, and the latter two of the approaches will even support definitions that may fail to terminate on certain inputs, without any up-front characterization of which inputs those may be. *)
+
+自然な再帰には、どの条件も満たさないパターンが多くあります。
+その一例は、本章で見るマージソートです。
+本章では、より柔軟な再帰を実現する手法を三通り見ていきます。
+そのうち後半の二つは、特定の入力に対して停止しない場合があるという定義さえ可能な方法です。
+どのような入力であるかを事前に特徴づける必要もありません。
+
+(* Before proceeding, it is important to note that the problem here is not as fundamental as it may appear.  The final example of Chapter 5 demonstrated what is called a%\index{deep embedding}% _deep embedding_ of the syntax and semantics of a programming language.  That is, we gave a mathematical definition of a language of programs and their meanings.  This language clearly admitted non-termination, and we could think of writing all our sophisticated recursive functions with such explicit syntax types.  However, in doing so, we forfeit our chance to take advantage of Coq's very good built-in support for reasoning about Gallina programs.  We would rather use a%\index{shallow embedding}% _shallow embedding_, where we model informal constructs by encoding them as normal Gallina programs.  Each of the three techniques of this chapter follows that style. *)
+
+先に進む前に、こうした条件が必要であることが実はそれほど根源的なものではない、という点を注意しておきましょう。
+第5章の最後に紹介した例は、プログラミング言語のシンタックスとセマンティクスを%\index{深い埋め込み}% _深く埋め込み_したものでした。
+言い換えると、あるプログラムの言語に対して数学的な定義とその意味の両方を与える例を見ました。
+そのように構成したプログラミング言語では、停止しないプログラムでも明らかに許容され、形式的な型を明示した精巧な再帰関数がなんでも書けるようになるでしょう。
+しかし、それはまた、Coqに組み込まれた実に優れた機能であるGallinaのプログラムに関する推論を手放すことを意味します。
+ここではむしろ、そのような深い埋め込みの代わりに、%\index{浅い埋め込み}%_浅い埋め込み_と呼ぶべき手法を使います。
+具体的には、非形式的な構成要素を、通常のGallinaのプログラムとしてモデル化します。
+本章で紹介する三つの技法は、いずれもこの浅い埋め込みによるものです。
+*)
 
 (** * Well-Founded Recursion *)
 
