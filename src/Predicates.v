@@ -579,7 +579,7 @@ Coqによる定理証明を使ってプログラムを書くことは可能で�
 
   Here is an example of a theorem statement with existential quantification.  We use the equality operator [=], which, depending on the settings in which they learned logic, different people will say either is or is not part of first-order logic.  For our purposes, it is. *)
 
-（[forall]限量子のスコープは常にできるだけ大きく取られるので、上記の[ex_intro]は[forall x : A, (P x -> ex P)]とも書いたのと同じです。）
+（[forall]限量子のスコープは常にできるだけ大きく取られるので、上記の[ex_intro]は[forall x : A, (P x -> ex P)]と書いても同じです。）
 
 [ex]は、限量化する型[A]と、[A]上の術語[P]をパラーメータとして取ります。
 存在限量化された命題の証明では、型[A]を持つ何らかの[x]を、[P x]の証明を添えて提示することになります。
@@ -717,8 +717,8 @@ Qed.
 
 [isZero]の定義は、ある重要な点で、前章と本章でこれまでに見た帰納的定義とは異なります。
 コロンの直後に、[Set]や[Prop]ではなく、[nat -> Prop]と書いている点です。
-パラメータ付きの型は、これまでにも[list]などで登場していますが、そこではパラメータが名前と一緒にコロンの_前_に置かれていました。
-パラメータ付きの帰納型の各構成子には、それぞれ範囲のある型を持たせる必要があり、それらは同じパラメータを使うのですが、上記の例では個々の構成子に対し別々の変数を型として指定するような書き方をしています。
+パラメータ付きの型は、これまでにも[list]などで登場していますが、これまでの例ではパラメータを名前と一緒にコロンの_前_に置いていました。
+パラメータ付きの帰納型では、すべての構成子が値域の型で同じパラメータを使う必要がありますが、この例のような書き方であれば型の引数を構成子ごとに選べます。
 
 (* For instance, our definition [isZero] makes the predicate provable only when the argument is [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in %\index{Prolog}%Prolog (but worry not if not familiar with Prolog), and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type!%\index{Gallina terms!eq}\index{Gallina terms!refl\_equal}% *)
 
