@@ -61,17 +61,38 @@ _[再帰的]_な定義においては、もとの主引数の_[シンタック�
 本章で紹介する三つの技法は、いずれもこの浅い埋め込みによるものです。
 *)
 
-(** * Well-Founded Recursion *)
+(**
+(* * Well-Founded Recursion *)*
 
-(** The essence of terminating recursion is that there are no infinite chains of nested recursive calls.  This intuition is commonly mapped to the mathematical idea of a%\index{well-founded relation}% _well-founded relation_, and the associated standard technique in Coq is%\index{well-founded recursion}% _well-founded recursion_.  The syntactic-subterm relation that Coq applies by default is well-founded, but many cases demand alternate well-founded relations.  To demonstrate, let us see where we get stuck on attempting a standard merge sort implementation. *)
+* 整礎な再帰
+*)
+
+(**
+(* The essence of terminating recursion is that there are no infinite chains of nested recursive calls.  This intuition is commonly mapped to the mathematical idea of a%\index{well-founded relation}% _well-founded relation_, and the associated standard technique in Coq is%\index{well-founded recursion}% _well-founded recursion_.  The syntactic-subterm relation that Coq applies by default is well-founded, but many cases demand alternate well-founded relations.  To demonstrate, let us see where we get stuck on attempting a standard merge sort implementation. *)
+
+再帰の終了にとって本質的なのは、再帰呼び出しの入れ子が無限に連鎖しないことです。
+これは一般には数学における%\index{整礎関係}% _{整礎関係}_という概念に対応します。
+それに対応する標準的なCoqの技法は%\index{整礎な再帰}% _{整礎な再帰}_です。
+Coqにおいて、シンタックス上のサブ項に適用される関係は、デフォルトで整礎な関係です。
+しかし、その整礎な関係に対して変更が求められる場合も多々あります。
+標準的なマージソートの実装に挑戦しながら、どこで壁に直面するか見てみましょう。
+*)
 
 Section mergeSort.
   Variable A : Type.
   Variable le : A -> A -> bool.
 
-  (** We have a set equipped with some "less-than-or-equal-to" test. *)
+  (**
+  (* We have a set equipped with some "less-than-or-equal-to" test. *)
+  
+  上記の[A]は、「小なりイコール」をテストする仕組みを備えた集合のつもりです。
+  *)
 
-  (** A standard function inserts an element into a sorted list, preserving sortedness. *)
+  (**
+  (* A standard function inserts an element into a sorted list, preserving sortedness. *)
+  
+  下記は、ソート済みのリストに対してソートされた状態を維持したまま要素を追加する、標準的な関数です。
+  *)
 
   Fixpoint insert (x : A) (ls : list A) : list A :=
     match ls with
@@ -82,7 +103,12 @@ Section mergeSort.
 	  else h :: insert x ls'
     end.
 
-  (** We will also need a function to merge two sorted lists.  (We use a less efficient implementation than usual, because the more efficient implementation already forces us to think about well-founded recursion, while here we are only interested in setting up the example of merge sort.) *)
+  (**
+  (* We will also need a function to merge two sorted lists.  (We use a less efficient implementation than usual, because the more efficient implementation already forces us to think about well-founded recursion, while here we are only interested in setting up the example of merge sort.) *)
+  
+  2つのソート済みのリストをマージする関数も必要です。
+  （下記の定義は、普通の実装よりも効率が悪いですが、効率を上げようと思うと、この時点で整礎な再帰についての考慮が必要になります。今はマージソートの例題に使うヘルパー関数を用意したいだけなので、効率は気にしないことにします。）
+  *)
 
   Fixpoint merge (ls1 ls2 : list A) : list A :=
     match ls1 with
@@ -90,7 +116,11 @@ Section mergeSort.
       | h :: ls' => insert h (merge ls' ls2)
     end.
 
-  (** The last helper function for classic merge sort is the one that follows, to split a list arbitrarily into two pieces of approximately equal length. *)
+  (**
+  (* The last helper function for classic merge sort is the one that follows, to split a list arbitrarily into two pieces of approximately equal length. *)
+  
+  最後に、ほぼ同じ長さを持つ2つの部分へとリストを任意に分割する下記のようなヘルパー関数を用意します。
+  *)
 
   Fixpoint split (ls : list A) : list A * list A :=
     match ls with
@@ -101,7 +131,11 @@ Section mergeSort.
 	  (h1 :: ls1, h2 :: ls2)
     end.
 
-  (** Now, let us try to write the final sorting function, using a natural number "[<=]" test [leb] from the standard library.
+  (**
+  (* Now, let us try to write the final sorting function, using a natural number "[<=]" test [leb] from the standard library.*)
+  
+  それではマージソートを実行する関数を書いてみましょう。
+  標準ライブラリには、自然数の「小なりイコール」をテストする[leb]という関数があるので、それを使います。
 [[
   Fixpoint mergeSort (ls : list A) : list A :=
     if leb (length ls) 1
@@ -115,17 +149,31 @@ Recursive call to mergeSort has principal argument equal to
 "fst (split ls)" instead of a subterm of "ls".
 >>
 
-The definition is rejected for not following the simple primitive recursion criterion.  In particular, it is not apparent that recursive calls to [mergeSort] are syntactic subterms of the original argument [ls]; indeed, they are not, yet we know this is a well-founded recursive definition.
+(* The definition is rejected for not following the simple primitive recursion criterion.  In particular, it is not apparent that recursive calls to [mergeSort] are syntactic subterms of the original argument [ls]; indeed, they are not, yet we know this is a well-founded recursive definition. *)
 
-To produce an acceptable definition, we need to choose a well-founded relation and prove that [mergeSort] respects it.  A good starting point is an examination of how well-foundedness is formalized in the Coq standard library. *)
+上記の定義が受け入れられないのは、原始再帰における単純な基準に従っていないためです。
+特に、[mergeSort]の再帰呼び出しが、元の引数[ls]のシンタックス上のサブ項に対するものになっているかどうかが明らかではありません。
+実際、そうなっていないのですが、それでもこの定義は整礎な再帰的定義です。
+
+(* To produce an acceptable definition, we need to choose a well-founded relation and prove that [mergeSort] respects it.  A good starting point is an examination of how well-foundedness is formalized in the Coq standard library. *)
+
+受け入れられる定義を書くには、[mergeSort]が何らかの整礎関係を遵守していることを証明する必要があります。
+手始めに、Coqの標準ライブラリにおいて整礎であることがどのように定式化されているかを調べてみましょう。
+*)
 
   Print well_founded.
-  (** %\vspace{-.15in}% [[
+  (**  [[
 well_founded = 
 fun (A : Type) (R : A -> A -> Prop) => forall a : A, Acc R a
 ]]
+*)
 
-The bulk of the definitional work devolves to the%\index{accessibility relation}\index{Gallina terms!Acc}% _accessibility_ relation [Acc], whose definition we may also examine. *)
+(* The bulk of the definitional work devolves to the%\index{accessibility relation}\index{Gallina terms!Acc}% _accessibility_ relation [Acc], whose definition we may also examine. *)
+
+この定義の要点は、[Acc]という関係に集約されます。
+これは%\index{accessibility relation}\index{Gallina terms!Acc}% _到達可能性関係_と呼ばれるものです。
+[Acc]の定義を見てみましょう。
+*)
 
 (* begin hide *)
 (* begin thide *)
@@ -134,19 +182,29 @@ Definition Acc_intro' := Acc_intro.
 (* end hide *)
 
   Print Acc.
-(** %\vspace{-.15in}% [[
+(**  [[
 Inductive Acc (A : Type) (R : A -> A -> Prop) (x : A) : Prop :=
     Acc_intro : (forall y : A, R y x -> Acc R y) -> Acc R x
 ]]
+*)
 
-In prose, an element [x] is accessible for a relation [R] if every element "less than" [x] according to [R] is also accessible.  Since [Acc] is defined inductively, we know that any accessibility proof involves a finite chain of invocations, in a certain sense that we can make formal.  Building on Chapter 5's examples, let us define a co-inductive relation that is closer to the usual informal notion of "absence of infinite decreasing chains." *)
+(* In prose, an element [x] is accessible for a relation [R] if every element "less than" [x] according to [R] is also accessible.  Since [Acc] is defined inductively, we know that any accessibility proof involves a finite chain of invocations, in a certain sense that we can make formal.  Building on Chapter 5's examples, let us define a co-inductive relation that is closer to the usual informal notion of "absence of infinite decreasing chains." *)
+
+この定義を文章にすれば、「[x]が関係[R]に対して到達可能性がある」というのは、[x]との間で関係[R]にあるすべての要素（つまり[x]より小さなすべての要素）もまた[R]に対して到達可能性がある場合である、となります。
+[Acc]の定義が帰納的なので、到達可能性関係の証明には「有限回の呼び出しの連鎖」が関与することが（そのことを形式化できるという意味で）わかります。
+第5章の例を参考に、「無限に下降する連鎖がない」という通常の非形式的な表現に近い余帰納関係を定義してみましょう。
+*)
 
   CoInductive infiniteDecreasingChain A (R : A -> A -> Prop) : stream A -> Prop :=
   | ChainCons : forall x y s, infiniteDecreasingChain R (Cons y s)
     -> R y x
     -> infiniteDecreasingChain R (Cons x (Cons y s)).
 
-(** We can now prove that any accessible element cannot be the beginning of any infinite decreasing chain. *)
+(**
+(* We can now prove that any accessible element cannot be the beginning of any infinite decreasing chain. *)
+
+上記を使うと、「到達可能な要素から始まる連鎖が無限に下降することはない」ことが証明できます。
+*)
 
 (* begin thide *)
   Lemma noBadChains' : forall A (R : A -> A -> Prop) x, Acc R x
@@ -157,7 +215,11 @@ In prose, an element [x] is accessible for a relation [R] if every element "less
       end.
   Qed.
 
-(** From here, the absence of infinite decreasing chains in well-founded sets is immediate. *)
+(**
+(* From here, the absence of infinite decreasing chains in well-founded sets is immediate. *)
+
+ここまでくれば、整礎な集合には無限に下降する連鎖がないことがすぐに導けます。
+*)
 
   Theorem noBadChains : forall A (R : A -> A -> Prop), well_founded R
     -> forall s, ~infiniteDecreasingChain R s.
@@ -165,10 +227,15 @@ In prose, an element [x] is accessible for a relation [R] if every element "less
   Qed.
 (* end thide *)
 
-(** Absence of infinite decreasing chains implies absence of infinitely nested recursive calls, for any recursive definition that respects the well-founded relation.  The [Fix] combinator from the standard library formalizes that intuition: *)
+(**
+(* Absence of infinite decreasing chains implies absence of infinitely nested recursive calls, for any recursive definition that respects the well-founded relation.  The [Fix] combinator from the standard library formalizes that intuition: *)
+
+無限に下降する連鎖がないことは、「整礎関係を遵守する再帰的な定義であれば、再帰呼び出しが無限に入れ子になることはない」ことを示唆します。
+この直観を形式化するには、標準ライブラリの[Fix]結合子が使えます。
+*)
 
   Check Fix.
-(** %\vspace{-.15in}%[[
+(** [[
 Fix
      : forall (A : Type) (R : A -> A -> Prop),
        well_founded R ->
@@ -177,21 +244,43 @@ Fix
        forall x : A, P x
 ]]
 
-A call to %\index{Gallina terms!Fix}%[Fix] must present a relation [R] and a proof of its well-foundedness.  The next argument, [P], is the possibly dependent range type of the function we build; the domain [A] of [R] is the function's domain.  The following argument has this type:
+(* A call to %\index{Gallina terms!Fix}%[Fix] must present a relation [R] and a proof of its well-foundedness.  The next argument, [P], is the possibly dependent range type of the function we build; the domain [A] of [R] is the function's domain.  The following argument has this type:*)
+
+%\index{Gallina terms!Fix}%[Fix]を呼び出すときには、整礎関係の証明つきで、関係[R]を提示します。
+[P]が表しているのは「組み立てる関数の値域の型（依存型の場合もある）」です（[R]の定義域である[A]が、その関数の定義域になります）。
+それに続くのは、組み立てる関数の本体を表す次の型です。
+
 [[
        forall x : A, (forall y : A, R y x -> P y) -> P x
 ]]
 
-This is an encoding of the function body.  The input [x] stands for the function argument, and the next input stands for the function we are defining.  Recursive calls are encoded as calls to the second argument, whose type tells us it expects a value [y] and a proof that [y] is "less than" [x], according to [R].  In this way, we enforce the well-foundedness restriction on recursive calls.
+(* This is an encoding of the function body.  The input [x] stands for the function argument, and the next input stands for the function we are defining.  Recursive calls are encoded as calls to the second argument, whose type tells us it expects a value [y] and a proof that [y] is "less than" [x], according to [R].  In this way, we enforce the well-foundedness restriction on recursive calls. *)
 
-The rest of [Fix]'s type tells us that it returns a function of exactly the type we expect, so we are now ready to use it to implement [mergeSort].  Careful readers may have noticed that [Fix] has a dependent type of the sort we met in the previous chapter.
+[x]は組み立てる関数の引数に相当します。定義している関数に相当するのが[(forall y : A, R y x -> P y) -> P x]です。
+この[Fix]の二つめの引数が、再帰呼び出しを表しています。その型からわかるように、この二つめの引数は、[x]との間で関係[R]にある（つまり[x]より「小さい」）ことの証明付きで値[y]を取ります。
 
-Before writing [mergeSort], we need to settle on a well-founded relation.  The right one for this example is based on lengths of lists. *)
+(* The rest of [Fix]'s type tells us that it returns a function of exactly the type we expect, so we are now ready to use it to implement [mergeSort].  Careful readers may have noticed that [Fix] has a dependent type of the sort we met in the previous chapter. *)
+
+[Fix]の型の最後の部分を見ると、[Fix]が期待どおりの型を持つ関数を返すことがわかります。
+そこで、この[Fix]を使って[mergeSort]を書くことにします。
+[Fix]が前章で見たような依存型を持つことに気が付いた読者もいることでしょう。
+
+(* Before writing [mergeSort], we need to settle on a well-founded relation.  The right one for this example is based on lengths of lists. *)
+
+[mergeSort]を書く前に、整礎な関係を定めておく必要があります。
+今の例ではリストの長さに対する関係として定義しましょう。
+*)
 
   Definition lengthOrder (ls1 ls2 : list A) :=
     length ls1 < length ls2.
 
-  (** We must prove that the relation is truly well-founded.  To save some space in the rest of this chapter, we skip right to nice, automated proof scripts, though we postpone introducing the principles behind such scripts to Part III of the book.  Curious readers may still replace semicolons with periods and newlines to step through these scripts interactively. *)
+  (**
+  (* We must prove that the relation is truly well-founded.  To save some space in the rest of this chapter, we skip right to nice, automated proof scripts, though we postpone introducing the principles behind such scripts to Part III of the book.  Curious readers may still replace semicolons with periods and newlines to step through these scripts interactively. *)
+  
+  この関係が整礎であることを証明しなければなりません。
+  本章があまり長くならないように、ここはうまく自動証明スクリプトで片づけることにします。ただし、このスクリプトの背景にある原理の説明は第III部まで持ち越します。
+  興味がある読者は、セミコロンをピリオドと改行に置き換えて、スクリプトの各ステップを対話的に実行してみてもいいでしょう。
+  *)
 
   Hint Constructors Acc.
 
@@ -203,9 +292,24 @@ Before writing [mergeSort], we need to settle on a well-founded relation.  The r
     red; intro; eapply lengthOrder_wf'; eauto.
   Defined.
 
-  (** Notice that we end these proofs with %\index{Vernacular commands!Defined}%[Defined], not [Qed].  Recall that [Defined] marks the theorems as %\emph{%#<i>#transparent#</i>#%}%, so that the details of their proofs may be used during program execution.  Why could such details possibly matter for computation?  It turns out that [Fix] satisfies the primitive recursion restriction by declaring itself as _recursive in the structure of [Acc] proofs_.  This is possible because [Acc] proofs follow a predictable inductive structure.  We must do work, as in the last theorem's proof, to establish that all elements of a type belong to [Acc], but the automatic unwinding of those proofs during recursion is straightforward.  If we ended the proof with [Qed], the proof details would be hidden from computation, in which case the unwinding process would get stuck.
+  (**
+  (* Notice that we end these proofs with %\index{Vernacular commands!Defined}%[Defined], not [Qed].  Recall that [Defined] marks the theorems as %\emph{%#<i>#transparent#</i>#%}%, so that the details of their proofs may be used during program execution.  Why could such details possibly matter for computation?  It turns out that [Fix] satisfies the primitive recursion restriction by declaring itself as _recursive in the structure of [Acc] proofs_.  This is possible because [Acc] proofs follow a predictable inductive structure.  We must do work, as in the last theorem's proof, to establish that all elements of a type belong to [Acc], but the automatic unwinding of those proofs during recursion is straightforward.  If we ended the proof with [Qed], the proof details would be hidden from computation, in which case the unwinding process would get stuck.  *)
 
-     To justify our two recursive [mergeSort] calls, we will also need to prove that [split] respects the [lengthOrder] relation.  These proofs, too, must be kept transparent, to avoid stuckness of [Fix] evaluation.  We use the syntax [@foo] to reference identifier [foo] with its implicit argument behavior turned off.  (The proof details below use Ltac features not introduced yet, and they are safe to skip for now.) *)
+  上記では、[Qed]ではなく%\index{Vernacular commands!Defined}%[Defined]を使って証明を終えています。
+  [Defined]を使うと、証明が%\emph{%#<i>#透明#</i>#%}%になり、プログラムの実行中に証明の細部が使われるようになるのでした。
+  この証明の細部を計算で利用できることには、何か意味があるのでしょうか？
+  実は[Fix]は、自身が_{[Acc]の証明の構造に関して再帰的である}_と宣言することで、プリミティブな再帰の制限を満たすようになります。
+  これが可能なのは、[Acc]の証明が、帰納法の構造に従った予測可能なものであることによります。
+  最後の定理の証明では、型のすべての要素が[Acc]に属することを確立するという手間があるのですが、これは再帰の最中に証明の自動的な巻き上げが可能であれば簡単になります。
+  もし[Qed]で証明を終えてしまうと、証明の細部が計算から隠されるので、この巻き上げが止まってしまうのです。
+
+  (* To justify our two recursive [mergeSort] calls, we will also need to prove that [split] respects the [lengthOrder] relation.  These proofs, too, must be kept transparent, to avoid stuckness of [Fix] evaluation.  We use the syntax [@foo] to reference identifier [foo] with its implicit argument behavior turned off.  (The proof details below use Ltac features not introduced yet, and they are safe to skip for now.) *)
+  
+  [mergeSort]の二つの再帰呼び出しを正当化するには、[split]についても関係[lengthOrder]を遵守することの証明が必要です。
+  その証明も[Fix]の実行が止まらないように透明にしておきます。
+  なお、[@foo]というシンタックスは、暗黙の引数の挙動を無効にした状態で識別子[foo]を参照するものです。
+  （下記の証明では、まだ説明していないLtacの機能を使っています。いまは読み飛ばして問題ありません。）
+  *)
 
   Lemma split_wf : forall len ls, 2 <= length ls <= len
     -> let (ls1, ls2) := split ls in
@@ -235,7 +339,14 @@ Before writing [mergeSort], we need to settle on a well-founded relation.  The r
 
   Hint Resolve split_wf1 split_wf2.
 
-  (** To write the function definition itself, we use the %\index{tactics!refine}%[refine] tactic as a convenient way to write a program that needs to manipulate proofs, without writing out those proofs manually.  We also use a replacement [le_lt_dec] for [leb] that has a more interesting dependent type.  (Note that we would not be able to complete the definition without this change, since [refine] will generate subgoals for the [if] branches based only on the _type_ of the test expression, not its _value_.) *)
+  (**
+  (* To write the function definition itself, we use the %\index{tactics!refine}%[refine] tactic as a convenient way to write a program that needs to manipulate proofs, without writing out those proofs manually.  We also use a replacement [le_lt_dec] for [leb] that has a more interesting dependent type.  (Note that we would not be able to complete the definition without this change, since [refine] will generate subgoals for the [if] branches based only on the _type_ of the test expression, not its _value_.) *)
+  
+  関数の定義そのものは、%\index{tactics!refine}%[refine]タクティクを使って書きます。
+  [refine]は、証明を手作業で書き下すことなく、証明を操作する必要があるプログラムを書くときに便利な手法です。
+  また、[leb]の代わりに、依存型を持つ[le_lt_dec]を使っています。
+  （[refine]では、[if]節の分岐に対してサブゴールを生成するときに条件式の_値_ではなく_型_のみを利用するので、[le_lt_dec]を使わずに証明を完了することはできないでしょう。）
+  *)
 
   Definition mergeSort : list A -> list A.
 (* begin thide *)
@@ -250,12 +361,21 @@ Before writing [mergeSort], we need to settle on a well-founded relation.  The r
 (* end thide *)
 End mergeSort.
 
-(** The important thing is that it is now easy to evaluate calls to [mergeSort]. *)
+(**
+(* The important thing is that it is now easy to evaluate calls to [mergeSort]. *)
+
+これで[mergeSort]の呼び出しを簡単に実行できるようになりました。
+*)
 
 Eval compute in mergeSort leb (1 :: 2 :: 36 :: 8 :: 19 :: nil).
 (** [= 1 :: 2 :: 8 :: 19 :: 36 :: nil] *)
 
-(** %\smallskip{}%Since the subject of this chapter is merely how to define functions with unusual recursion structure, we will not prove any further correctness theorems about [mergeSort]. Instead, we stop at proving that [mergeSort] has the expected computational behavior, for all inputs, not merely the one we just tested. *)
+(**
+(* %\smallskip{}%Since the subject of this chapter is merely how to define functions with unusual recursion structure, we will not prove any further correctness theorems about [mergeSort]. Instead, we stop at proving that [mergeSort] has the expected computational behavior, for all inputs, not merely the one we just tested. *)
+
+本章の目標は通常とは違う再帰の構造をもった関数を定義する方法を説明することなので、[mergeSort]の正しさに関する他の定理を証明することはしません。
+その代わり、ここでちょっと立ち止まって、[mergeSort]が上記で試した例だけでなくあらゆる入力に対して期待通りの計算的な挙動になることを証明してみましょう。
+*)
 
 (* begin thide *)
 Theorem mergeSort_eq : forall A (le : A -> A -> bool) ls,
@@ -265,7 +385,15 @@ Theorem mergeSort_eq : forall A (le : A -> A -> bool) ls,
     else ls.
   intros; apply (Fix_eq (@lengthOrder_wf A) (fun _ => list A)); intros.
 
-  (** The library theorem [Fix_eq] imposes one more strange subgoal upon us.  We must prove that the function body is unable to distinguish between "self" arguments that map equal inputs to equal outputs.  One might think this should be true of any Gallina code, but in fact this general%\index{extensionality}% _function extensionality_ property is neither provable nor disprovable within Coq.  The type of [Fix_eq] makes clear what we must show manually: *)
+  (**
+  (* The library theorem [Fix_eq] imposes one more strange subgoal upon us.  We must prove that the function body is unable to distinguish between "self" arguments that map equal inputs to equal outputs.  One might think this should be true of any Gallina code, but in fact this general%\index{extensionality}% _function extensionality_ property is neither provable nor disprovable within Coq.  The type of [Fix_eq] makes clear what we must show manually: *)
+  
+  ライブラリにある[Fix_eq]という定理は、さらに一つ、奇妙なサブゴールを提示します。
+  関数の本体が、等しい入力に対して等しい出力を対応させるような引数どうしの間で、互いに区別がないことを証明する必要があるのです。
+  これは%\index{外延性}% _関数の外延性_と呼ばれる性質です。
+  関数の外延性は、Gallinaのコードであれば真であるように思えるかもしれませんが、実際にはCoqの中で証明可能でも証明不能でもありません。
+  [Fix_eq]の型を見ると、証明すべきことが何であるかがはっきりとわかります。
+  *)
 
   Check Fix_eq.
 (** %\vspace{-.15in}%[[
@@ -279,7 +407,10 @@ Fix_eq
        Fix Rwf P F x = F x (fun (y : A) (_ : R y x) => Fix Rwf P F y)
 ]]
 
-  Most such obligations are dischargeable with straightforward proof automation, and this example is no exception. *)
+  (* Most such obligations are dischargeable with straightforward proof automation, and this example is no exception. *)
+  
+  こうした証明の責務は、その多くが単純な証明の自動化によって片づきます。今回も例外ではありません。
+  *)
 
   match goal with
     | [ |- context[match ?E with left _ => _ | right _ => _ end] ] => destruct E
@@ -287,7 +418,11 @@ Fix_eq
 Qed.
 (* end thide *)
 
-(** As a final test of our definition's suitability, we can extract to OCaml. *)
+(**
+(* As a final test of our definition's suitability, we can extract to OCaml. *)
+
+適切に定義できているかどうか、最後にOCamlのコードを抽出して確かめてみましょう。
+*)
 
 Extraction mergeSort.
 
@@ -300,9 +435,18 @@ let rec mergeSort le x =
   | Right -> x
 >>
 
-  We see almost precisely the same definition we would have written manually in OCaml!  It might be a good exercise for the reader to use the commands we saw in the previous chapter to clean up some remaining differences from idiomatic OCaml.
+(*  We see almost precisely the same definition we would have written manually in OCaml!  It might be a good exercise for the reader to use the commands we saw in the previous chapter to clean up some remaining differences from idiomatic OCaml.
 
-  One more piece of the full picture is missing.  To go on and prove correctness of [mergeSort], we would need more than a way of unfolding its definition.  We also need an appropriate induction principle matched to the well-founded relation.  Such a principle is available in the standard library, though we will say no more about its details here. *)
+OCamlで手で書くであろうコードとほぼ同じ定義が得られました。
+前章で説明したコマンドを使って、OCamlのイディオムとの差をもう少し詰めてみると、よい練習になるでしょう。
+*)
+
+(*  One more piece of the full picture is missing.  To go on and prove correctness of [mergeSort], we would need more than a way of unfolding its definition.  We also need an appropriate induction principle matched to the well-founded relation.  Such a principle is available in the standard library, though we will say no more about its details here. *)
+
+もう一つ不足していることがあります。
+[mergeSort]の正しさを証明するには、その定義を展開するだけでは不十分であり、整礎な関係に適合する適切な帰納法の原理も必要です。
+ここでは詳細を省きますが、標準ライブラリにはそのような原理があります。
+*)
 
 Check well_founded_induction.
 (** %\vspace{-.15in}%[[
@@ -314,7 +458,11 @@ well_founded_induction
        forall a : A, P a
 ]]
 
-  Some more recent Coq features provide more convenient syntax for defining recursive functions.  Interested readers can consult the Coq manual about the commands %\index{Function}%[Function] and %\index{Program Fixpoint}%[Program Fixpoint]. *)
+(*  Some more recent Coq features provide more convenient syntax for defining recursive functions.  Interested readers can consult the Coq manual about the commands %\index{Function}%[Function] and %\index{Program Fixpoint}%[Program Fixpoint]. *)
+
+比較的新しいCoqの機能には、再帰的な関数を定義するさらに便利なシンタックスもあります。
+興味がある読者はCoqのマニュアルで%\index{Function}%[Function]および%\index{Program Fixpoint}%[Program Fixpoint]というコマンドを調べてみてください。
+*)
 
 
 (** * A Non-Termination Monad Inspired by Domain Theory *)
