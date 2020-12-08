@@ -70,7 +70,7 @@ _[再帰的]_な定義においては、もとの主引数の_[シンタック�
 (**
 (* The essence of terminating recursion is that there are no infinite chains of nested recursive calls.  This intuition is commonly mapped to the mathematical idea of a%\index{well-founded relation}% _well-founded relation_, and the associated standard technique in Coq is%\index{well-founded recursion}% _well-founded recursion_.  The syntactic-subterm relation that Coq applies by default is well-founded, but many cases demand alternate well-founded relations.  To demonstrate, let us see where we get stuck on attempting a standard merge sort implementation. *)
 
-再帰の終了にとって本質的なのは、再帰呼び出しの入れ子が無限に連鎖しないことです。
+再帰の停止にとって本質的なのは、再帰呼び出しの入れ子が無限に連鎖しないことです。
 これは一般には数学における%\index{整礎関係}% _{整礎関係}_という概念に対応します。
 それに対応する標準的なCoqの技法は%\index{整礎な再帰}% _{整礎な再帰}_です。
 Coqにおいて、シンタックス上のサブ項に適用される関係は、デフォルトで整礎な関係です。
@@ -465,17 +465,37 @@ well_founded_induction
 *)
 
 
-(** * A Non-Termination Monad Inspired by Domain Theory *)
+(**
+(* * A Non-Termination Monad Inspired by Domain Theory *)
 
-(** The key insights of %\index{domain theory}%domain theory%~\cite{WinskelDomains}% inspire the next approach to modeling non-termination.  Domain theory is based on _information orders_ that relate values representing computation results, according to how much information these values convey.  For instance, a simple domain might include values "the program does not terminate" and "the program terminates with the answer 5."  The former is considered to be an _approximation_ of the latter, while the latter is _not_ an approximation of "the program terminates with the answer 6."  The details of domain theory will not be important in what follows; we merely borrow the notion of an approximation ordering on computation results.
+* 領域理論と非停止性モナド
+*)
 
-   Consider this definition of a type of computations. *)
+(**
+(* The key insights of %\index{domain theory}%domain theory%~\cite{WinskelDomains}% inspire the next approach to modeling non-termination.  Domain theory is based on _information orders_ that relate values representing computation results, according to how much information these values convey.  For instance, a simple domain might include values "the program does not terminate" and "the program terminates with the answer 5."  The former is considered to be an _approximation_ of the latter, while the latter is _not_ an approximation of "the program terminates with the answer 6."  The details of domain theory will not be important in what follows; we merely borrow the notion of an approximation ordering on computation results.*)
+
+停止しないという概念のモデル化には、%\index{領域理論}%領域理論%~\cite{WinskelDomains}%の考え方も使えます。
+領域理論は_情報の順番_に基づく理論です。計算の結果には「値がどれだけの情報を持っているか」に応じて順番をつけられます。
+例として単純な領域を考えてみましょう。この領域には「プログラムが停止しない」とか「プログラムが5つの答えを出して停止する」といった値が含まれます。
+領域理論では、一つの値は二つめの値の_近似_だとみなせます。一方、二つめの値は、「プログラムが6つの答えを出して停止する」の近似ではありません。
+以降の説明では、領域理論の詳細を知っている必要はありません。「計算の結果に対する近似的な順序付け」の記法のみを領域理論から借りてきます。
+
+(* Consider this definition of a type of computations. *)
+
+以下のような計算の型の定義を考えてみましょう。
+*)
 
 Section computation.
   Variable A : Type.
-  (** The type [A] describes the result a computation will yield, if it terminates.
+  (**
+  (* The type [A] describes the result a computation will yield, if it terminates.*)
+  
+  [A]という型は、計算が停止した場合に導出する結果を表しています。
 
-     We give a rich dependent type to computations themselves: *)
+  (*  We give a rich dependent type to computations themselves: *)
+  
+  計算そのものの型は、豊かな依存型とします。
+  *)
 
   Definition computation :=
     {f : nat -> option A
@@ -484,20 +504,40 @@ Section computation.
 	-> forall (n' : nat), n' >= n
 	  -> f n' = Some v}.
 
-  (** A computation is fundamentally a function [f] from an _approximation level_ [n] to an optional result.  Intuitively, higher [n] values enable termination in more cases than lower values.  A call to [f] may return [None] to indicate that [n] was not high enough to run the computation to completion; higher [n] values may yield [Some].  Further, the proof obligation within the subset type asserts that [f] is _monotone_ in an appropriate sense: when some [n] is sufficient to produce termination, so are all higher [n] values, and they all yield the same program result [v].
-
-  It is easy to define a relation characterizing when a computation runs to a particular result at a particular approximation level. *)
+  (**
+  (* A computation is fundamentally a function [f] from an _approximation level_ [n] to an optional result.  Intuitively, higher [n] values enable termination in more cases than lower values.  A call to [f] may return [None] to indicate that [n] was not high enough to run the computation to completion; higher [n] values may yield [Some].  Further, the proof obligation within the subset type asserts that [f] is _monotone_ in an appropriate sense: when some [n] is sufficient to produce termination, so are all higher [n] values, and they all yield the same program result [v]. *)
+  
+  上記では、_{近似を表すレベル}_[n]から、省略可能な結果への関数[f]として、計算を定義しています。
+  直観的には、[n]の値が大きいほど停止するプログラムは多くなります。
+  [f]は、レベル[n]が計算の実行を完了できるほど十分に高くない場合には[None]を返すことがあります。
+  一方、[n]の値が十分に大きければ[Some]が得られます。
+  さらに、部分集合型に含まれるproof obligationでは、[f]が_一様である_ことが宣言されています。
+  これは、「あるレベル[n]で停止する計算は[n]より大きなすべてのレベルでも停止し、それらのレベルで得られるプログラムの値[v]はすべて同一である」という意味です。
+  
+  (* It is easy to define a relation characterizing when a computation runs to a particular result at a particular approximation level. *)
+  
+  「特定の近似レベルで計算を実行すると特定の結果になる」場合については、簡単に関係を定義できます。
+  *)
 
   Definition runTo (m : computation) (n : nat) (v : A) :=
     proj1_sig m n = Some v.
 
-  (** On top of [runTo], we also define [run], which is the most abstract notion of when a computation runs to a value. *)
+  (**
+  (* On top of [runTo], we also define [run], which is the most abstract notion of when a computation runs to a value. *)
+  
+  [runTo]を使って[run]も定義します。この[run]が、計算を実行して値が得られる場合を抽象化した最終形です。
+  *)
 
   Definition run (m : computation) (v : A) :=
     exists n, runTo m n v.
 End computation.
 
-(** The book source code contains at this point some tactics, lemma proofs, and hint commands, to be used in proving facts about computations.  Since their details are orthogonal to the message of this chapter, I have omitted them in the rendered version. *)
+(**
+(* The book source code contains at this point some tactics, lemma proofs, and hint commands, to be used in proving facts about computations.  Since their details are orthogonal to the message of this chapter, I have omitted them in the rendered version. *)
+
+実際のソースコードでは、計算についての事実を証明するために、この時点でいくつかのタクティク、補題の証明、ヒントのコマンドを使っています。
+それらの詳細は本章で伝えるべき内容とは関係がないので、ここでは割愛してあります。
+*)
 (* begin hide *)
 
 Hint Unfold runTo.
@@ -561,10 +601,19 @@ Hint Resolve ge_refl.
 Hint Extern 1 => match goal with
                    | [ H : _ = exist _ _ _ |- _ ] => rewrite H
                  end.
-(* end hide *)
 (** remove printing exists *)
+(* end hide *)
 
-(** Now, as a simple first example of a computation, we can define [Bottom], which corresponds to an infinite loop.  For any approximation level, it fails to terminate (returns [None]).  Note the use of [abstract] to create a new opaque lemma for the proof found by the #<tt>#%\coqdocvar{%run%}%#</tt># tactic.  In contrast to the previous section, opaque proofs are fine here, since the proof components of computations do not influence evaluation behavior.  It is generally preferable to make proofs opaque when possible, as this enforces a kind of modularity in the code to follow, preventing it from depending on any details of the proof. *)
+(**
+(* Now, as a simple first example of a computation, we can define [Bottom], which corresponds to an infinite loop.  For any approximation level, it fails to terminate (returns [None]).  Note the use of [abstract] to create a new opaque lemma for the proof found by the #<tt>#%\coqdocvar{%run%}%#</tt># tactic.  In contrast to the previous section, opaque proofs are fine here, since the proof components of computations do not influence evaluation behavior.  It is generally preferable to make proofs opaque when possible, as this enforces a kind of modularity in the code to follow, preventing it from depending on any details of the proof. *)
+
+単純な計算の例として、まずは[Bottom]を定義してみましょう。
+[Bottom]は無限ループに対応し、どのような近似レベルでも停止に失敗します（つまり[None]を返します）。
+#<tt>#%\coqdocvar{%run%}%#</tt>#タクティクによって見つかった証明のための補題を新しく作るのに、証明が透明ではない[abstract]を使っていることに注目してください。
+前節と違って、この証明が透明である必要がないのは、計算の証明では、証明の要素が評価の挙動に影響しないからです。
+一般に、証明はできるだけ透明でない状態にしておくほうがよいでしょう。
+それによりコードに対して一種のモジュラリティが強制され、証明の詳細への依存が避けられます。
+*)
 
 Section Bottom.
   Variable A : Type.
@@ -578,7 +627,11 @@ Section Bottom.
   Qed.
 End Bottom.
 
-(** A slightly more complicated example is [Return], which gives the same terminating answer at every approximation level. *)
+(**
+(* A slightly more complicated example is [Return], which gives the same terminating answer at every approximation level. *)
+
+次の例は、停止する同一の答えをすべての近似レベルで生成する[Return]です。こちらは少し複雑です。
+*)
 
 Section Return.
   Variable A : Type.
@@ -593,7 +646,14 @@ Section Return.
   Qed.
 End Return.
 
-(** The name [Return] was meant to be suggestive of the standard operations of %\index{monad}%monads%~\cite{Monads}%.  The other standard operation is [Bind], which lets us run one computation and, if it terminates, pass its result off to another computation.  We implement bind using the notation [let (x, y) := e1 in e2], for pulling apart the value [e1] which may be thought of as a pair.  The second component of a [computation] is a proof, which we do not need to mention directly in the definition of [Bind]. *)
+(**
+(* The name [Return] was meant to be suggestive of the standard operations of %\index{monad}%monads%~\cite{Monads}%.  The other standard operation is [Bind], which lets us run one computation and, if it terminates, pass its result off to another computation.  We implement bind using the notation [let (x, y) := e1 in e2], for pulling apart the value [e1] which may be thought of as a pair.  The second component of a [computation] is a proof, which we do not need to mention directly in the definition of [Bind]. *)
+
+[Return]という名称は、%\index{モナド}%モナド%~\cite{Monads}%の標準的な操作にちなみます。
+モナドのもう一つの標準的な操作は[Bind]です。[Bind]は計算を一つ実行し、停止する場合にはその結果を別の計算に渡します。
+実装で使っている[let (x, y) := e1 in e2]という記法は、ペアである値[e1]を分離するものです。
+[computation]の二つめの要素は証明であり、こちらは[Bind]の定義で直接記述する必要がありません。
+*)
 
 Section Bind.
   Variables A B : Type.
@@ -621,12 +681,22 @@ Section Bind.
   Qed.
 End Bind.
 
-(** A simple notation lets us write [Bind] calls the way they appear in Haskell. *)
+(**
+(* A simple notation lets us write [Bind] calls the way they appear in Haskell. *)
+
+単純な記法のおかげで、Haskellのような書き方で[Bind]を呼び出せます。
+*)
 
 Notation "x <- m1 ; m2" :=
   (Bind m1 (fun x => m2)) (right associativity, at level 70).
 
-(** We can verify that we have indeed defined a monad, by proving the standard monad laws.  Part of the exercise is choosing an appropriate notion of equality between computations.  We use "equality at all approximation levels." *)
+(**
+(* We can verify that we have indeed defined a monad, by proving the standard monad laws.  Part of the exercise is choosing an appropriate notion of equality between computations.  We use "equality at all approximation levels." *)
+
+標準的なモナド則を証明することで、ここで定義したものが実際にモナドであることを検証できます。
+ポイントは、計算と計算の間の等価性をどう設定するかです。
+ここでは、「すべての近似レベルで等しい」という指標を使います。
+*)
 
 Definition meq A (m1 m2 : computation A) := forall n, proj1_sig m1 n = proj1_sig m2 n.
 
@@ -646,7 +716,14 @@ Theorem associativity : forall A B C (m : computation A)
   run.
 Qed.
 
-(** Now we come to the piece most directly inspired by domain theory.  We want to support general recursive function definitions, but domain theory tells us that not all definitions are reasonable; some fail to be _continuous_ and thus represent unrealizable computations.  To formalize an analogous notion of continuity for our non-termination monad, we write down the approximation relation on computation results that we have had in mind all along. *)
+(**
+(* Now we come to the piece most directly inspired by domain theory.  We want to support general recursive function definitions, but domain theory tells us that not all definitions are reasonable; some fail to be _continuous_ and thus represent unrealizable computations.  To formalize an analogous notion of continuity for our non-termination monad, we write down the approximation relation on computation results that we have had in mind all along. *)
+
+ここで領域理論をもっとも直接的に使います。
+領域理論によると、すべての定義が推論可能なわけではなく、計算の_{継続}_に失敗する、つまり停止しない計算があります。
+こうした計算に対しても一般再帰関数が定義できるようにしたいところです。
+停止しないモナドに対する継続に類似した概念を形式化するため、これまで扱ってきた「計算の結果がどれだけ近似しているか」という関係を書き下してみます。
+*)
 
 Section lattice.
   Variable A : Type.
@@ -655,19 +732,38 @@ Section lattice.
     forall v, x = Some v -> y = Some v.
 End lattice.
 
-(** We now have the tools we need to define a new [Fix] combinator that, unlike the one we saw in the prior section, does not require a termination proof, and in fact admits recursive definition of functions that fail to terminate on some or all inputs. *)
+(**
+(* We now have the tools we need to define a new [Fix] combinator that, unlike the one we saw in the prior section, does not require a termination proof, and in fact admits recursive definition of functions that fail to terminate on some or all inputs. *)
+
+これで新しい[Fix]結合子を定義する道具が揃いました。
+この新しい[Fix]は、前節のものとは違い、停止することの証明を要求しません。
+また、入力の一部もしくはすべてについて停止に失敗する関数の、再帰的な定義を受け入れます。
+*)
 
 Section Fix.
 
-  (** First, we have the function domain and range types. *)
+  (**
+  (* First, we have the function domain and range types. *)
+  
+  まず、関数の定義域と値域の型を用意します。
+  *)
 
   Variables A B : Type.
 
-  (** Next comes the function body, which is written as though it can be parameterized over itself, for recursive calls. *)
+  (**
+  (* Next comes the function body, which is written as though it can be parameterized over itself, for recursive calls. *)
+  
+  次は、関数の本体です。再帰的な呼び出しのため、自分自身をパラメータとして取ることが可能であるかのような書き方をします。
+  *)
 
   Variable f : (A -> computation B) -> (A -> computation B).
 
-  (** Finally, we impose an obligation to prove that the body [f] is continuous.  That is, when [f] terminates according to one recursive version of itself, it also terminates with the same result at the same approximation level when passed a recursive version that refines the original, according to [leq]. *)
+  (**
+  (* Finally, we impose an obligation to prove that the body [f] is continuous.  That is, when [f] terminates according to one recursive version of itself, it also terminates with the same result at the same approximation level when passed a recursive version that refines the original, according to [leq]. *)
+  
+  最後に、「本体[f]が継続する」ことについてproof obligationを課します。
+  つまり、ある再帰的な定義で[f]が停止する場合には、別の再帰で改良したバージョンでも、[leq]による比較で近似レベルが同じなら、同じ結果を伴って停止することを証明します。
+  *)
 
   Hypothesis f_continuous : forall n v v1 x,
     runTo (f v1 x) n v
@@ -675,7 +771,12 @@ Section Fix.
       (forall x, leq (proj1_sig (v1 x) n) (proj1_sig (v2 x) n))
       -> runTo (f v2 x) n v.
 
-  (** The computational part of the [Fix] combinator is easy to define.  At approximation level 0, we diverge; at higher levels, we run the body with a functional argument drawn from the next lower level. *)
+  (**
+  (* The computational part of the [Fix] combinator is easy to define.  At approximation level 0, we diverge; at higher levels, we run the body with a functional argument drawn from the next lower level. *)
+  
+  [Fix]結合子で計算を扱う部分は簡単に定義できます。
+  近似レベルが0の場合は発散、それより高いレベルでは、一つ下のレベルから取り出した関数の引数で、関数の本体を実行します。
+  *)
 
   Fixpoint Fix' (n : nat) (x : A) : computation B :=
     match n with
@@ -683,7 +784,11 @@ Section Fix.
       | S n' => f (Fix' n') x
     end.
 
-  (** Now it is straightforward to package [Fix'] as a computation combinator [Fix]. *)
+  (**
+  (* Now it is straightforward to package [Fix'] as a computation combinator [Fix]. *)
+  
+  この[Fix']を、そのまま計算の演算子[Fix]としてパッケージ化します。
+  *)
 
   Hint Extern 1 (_ >= _) => omega.
   Hint Unfold leq.
@@ -708,7 +813,11 @@ Section Fix.
     intro x; exists (fun n => proj1_sig (Fix' n x) n); abstract run.
   Defined.
 
-  (** Finally, we can prove that [Fix] obeys the expected computation rule. *)
+  (**
+  (* Finally, we can prove that [Fix] obeys the expected computation rule. *)
+  
+  最後に、[Fix]が計算の規則に期待どおりに従うことを証明できます。
+  *)
 
   Theorem run_Fix : forall x v,
     run (f Fix x) v
@@ -745,7 +854,12 @@ Ltac mergeSort' := run;
                           end; auto.
 (* end hide *)
 
-(** After all that work, it is now fairly painless to define a version of [mergeSort] that requires no proof of termination.  We appeal to a program-specific tactic whose definition is hidden here but present in the book source. *)
+(**
+(* After all that work, it is now fairly painless to define a version of [mergeSort] that requires no proof of termination.  We appeal to a program-specific tactic whose definition is hidden here but present in the book source. *)
+
+ここまで準備すれば、停止性の証明が要求されないバージョンの[mergeSort]を定義するのも難しくありません。
+プログラムに特化したタクティクに任せます（ここではタクティクの定義は割愛します）。
+*)
 
 Definition mergeSort' : forall A, (A -> A -> bool) -> list A -> computation (list A).
   refine (fun A le => Fix
@@ -759,14 +873,25 @@ Definition mergeSort' : forall A, (A -> A -> bool) -> list A -> computation (lis
 	else Return ls) _); abstract mergeSort'.
 Defined.
 
-(** Furthermore, "running" [mergeSort'] on concrete inputs is as easy as choosing a sufficiently high approximation level and letting Coq's computation rules do the rest.  Contrast this with the proof work that goes into deriving an evaluation fact for a deeply embedded language, with one explicit proof rule application per execution step. *)
+(**
+(* Furthermore, "running" [mergeSort'] on concrete inputs is as easy as choosing a sufficiently high approximation level and letting Coq's computation rules do the rest.  Contrast this with the proof work that goes into deriving an evaluation fact for a deeply embedded language, with one explicit proof rule application per execution step. *)
+
+具体的な入力例に対して[mergeSort']を「実行」するには、十分な高さの近似レベルを選び、残りの仕事はCoqの計算規則に任せるだけです。
+実行ステップごとに一つの明示的な証明規則を適用して、深く埋め込まれた言語の評価に関する事実を導出する証明作業と比較すると、かなり簡単です。
+*)
 
 Lemma test_mergeSort' : run (mergeSort' leb (1 :: 2 :: 36 :: 8 :: 19 :: nil))
   (1 :: 2 :: 8 :: 19 :: 36 :: nil).
   exists 4; reflexivity.
 Qed.
 
-(** There is another benefit of our new [Fix] compared with the one we used in the previous section: we can now write recursive functions that sometimes fail to terminate, without losing easy reasoning principles for the terminating cases.  Consider this simple example, which appeals to another tactic whose definition we elide here. *)
+(**
+(* There is another benefit of our new [Fix] compared with the one we used in the previous section: we can now write recursive functions that sometimes fail to terminate, without losing easy reasoning principles for the terminating cases.  Consider this simple example, which appeals to another tactic whose definition we elide here. *)
+
+新しい[Fix]には、前節のものに比べ、ほかにも利点があります。
+それは、停止する場合についての簡単な再帰の原理を損なうことなく、停止に失敗する場合があるような再帰的な関数が書けるようになったことです。
+以下の単純な例を考えてみてください（タクティクの定義は割愛します）。
+*)
 
 (* begin hide *)
 Ltac looper := unfold leq in *; run;
@@ -785,24 +910,62 @@ Lemma test_looper : run (looper true) tt.
   exists 1; reflexivity.
 Qed.
 
-(** As before, proving outputs for specific inputs is as easy as demonstrating a high enough approximation level.
+(**
+(* As before, proving outputs for specific inputs is as easy as demonstrating a high enough approximation level.*)
 
-   There are other theorems that are important to prove about combinators like [Return], [Bind], and [Fix].  In general, for a computation [c], we sometimes have a hypothesis proving [run c v] for some [v], and we want to perform inversion to deduce what [v] must be.  Each combinator should ideally have a theorem of that kind, for [c] built directly from that combinator.  We have omitted such theorems here, but they are not hard to prove.  In general, the domain theory-inspired approach avoids the type-theoretic "gotchas" that tend to show up in approaches that try to mix normal Coq computation with explicit syntax types.  The next section of this chapter demonstrates two alternate approaches of that sort.  In the final section of the chapter, we review the pros and cons of the different choices, coming to the conclusion that none of them is obviously better than any one of the others for all situations. *)
+前と同様、特定の入力に対する出力に関する証明は、十分に高い近似レベルで実行を試してみるのと同じくらい簡単です。
+
+(* There are other theorems that are important to prove about combinators like [Return], [Bind], and [Fix].  In general, for a computation [c], we sometimes have a hypothesis proving [run c v] for some [v], and we want to perform inversion to deduce what [v] must be.  Each combinator should ideally have a theorem of that kind, for [c] built directly from that combinator.  We have omitted such theorems here, but they are not hard to prove.  In general, the domain theory-inspired approach avoids the type-theoretic "gotchas" that tend to show up in approaches that try to mix normal Coq computation with explicit syntax types.  The next section of this chapter demonstrates two alternate approaches of that sort.  In the final section of the chapter, we review the pros and cons of the different choices, coming to the conclusion that none of them is obviously better than any one of the others for all situations. *)
+
+[Return]、[Blind]、[Fix]のような結合子に関する証明では、ほかにも重要な定理があります。
+結合子[c]に対して実行したい作業は、一般には逆転です。
+つまり、ある[v]について[run c v]を証明する仮説があり、そのうえで[v]が何でなければならないかを導出したいことが多くあります。
+理想的には、どの結合子にも、そこから[c]が直接組み立てられるような定理があるはずです。
+本節では割愛しましたが、そのような定理の証明は難しくありません。
+一般に、領域理論を応用したアプローチを採用すれば、通常のCoqの計算と明示的な構文の型とを一緒に扱うアプローチでは直面するような型理論にまつわる「面倒」を避けられます。
+次節では、同様のアプローチをさらに二つ紹介します。
+そして最後の節では、各アプローチの利点と欠点を振り返り、どのような状況でも明らかに他より優れていると言えるアプローチがないという結論を導きます。
+*)
 
 
-(** * Co-Inductive Non-Termination Monads *)
+(**
+(* * Co-Inductive Non-Termination Monads *)
 
-(** There are two key downsides to both of the previous approaches: both require unusual syntax based on explicit calls to fixpoint combinators, and both generate immediate proof obligations about the bodies of recursive definitions.  In Chapter 5, we have already seen how co-inductive types support recursive definitions that exhibit certain well-behaved varieties of non-termination.  It turns out that we can leverage that co-induction support for encoding of general recursive definitions, by adding layers of co-inductive syntax.  In effect, we mix elements of shallow and deep embeddings.
+* 余帰納的な非停止性モナド
+*)
 
-   Our first example of this kind, proposed by Capretta%~\cite{Capretta}%, defines a silly-looking type of thunks; that is, computations that may be forced to yield results, if they terminate. *)
+(**
+(* There are two key downsides to both of the previous approaches: both require unusual syntax based on explicit calls to fixpoint combinators, and both generate immediate proof obligations about the bodies of recursive definitions.  In Chapter 5, we have already seen how co-inductive types support recursive definitions that exhibit certain well-behaved varieties of non-termination.  It turns out that we can leverage that co-induction support for encoding of general recursive definitions, by adding layers of co-inductive syntax.  In effect, we mix elements of shallow and deep embeddings.*)
+
+これまでのアプローチには、いずれも二つの主な欠点があります。
+どちらのアプローチでも[Fixpoint]を使った結合子を明示的に呼び出すような一般的でない構文が必要であることと、すぐに再帰的な定義の本体に関するproof obligationが生成されることです。
+第5章では、停止しないことが正しい振る舞いであるような再帰的定義において余帰納型が役に立つことを見ました。
+余帰納法は、一般再帰による定義を表現するうえでも、余帰納的な構文の層を追加するという形で活用できます。
+具体的には、浅い埋め込みの要素と深い埋め込みの要素を混在させます。
+
+(* Our first example of this kind, proposed by Capretta%~\cite{Capretta}%, defines a silly-looking type of thunks; that is, computations that may be forced to yield results, if they terminate. *)
+
+最初の例は、Capretta%~\cite{Capretta}%によって提唱されたものです。
+このアプローチでは、奇妙な見た目のサンクの型を定義します。
+ここでサンクとは、（停止するならば）結果の生成を強制しうる計算を指します。
+*)
 
 CoInductive thunk (A : Type) : Type :=
 | Answer : A -> thunk A
 | Think : thunk A -> thunk A.
 
-(** A computation is either an immediate [Answer] or another computation wrapped inside [Think].  Since [thunk] is co-inductive, every [thunk] type is inhabited by an infinite nesting of [Think]s, standing for non-termination.  Terminating results are [Answer] wrapped inside some finite number of [Think]s.
+(**
+(* A computation is either an immediate [Answer] or another computation wrapped inside [Think].  Since [thunk] is co-inductive, every [thunk] type is inhabited by an infinite nesting of [Think]s, standing for non-termination.  Terminating results are [Answer] wrapped inside some finite number of [Think]s.*)
 
-   Why bother to write such a strange definition?  The definition of [thunk] is motivated by the ability it gives us to define a "bind" operation, similar to the one we defined in the previous section. *)
+計算は、すぐに[Answer]になるか、[Think]で包まれて別の計算になるか、いずれかです。
+[thunk]は余帰納的なので、どの[thunk]型にも、非停止性を表す[Think]の無限の入れ子が含まれています。
+停止する結果は、ある有限の個数の[Think]に包まれた[Answer]です。
+
+(* Why bother to write such a strange definition?  The definition of [thunk] is motivated by the ability it gives us to define a "bind" operation, similar to the one we defined in the previous section. *)
+
+わざわざこのように奇妙な定義を書くのはなぜでしょうか。
+[thunk]が上記のような定義になっているのは、前節で定義したモナドのbind操作に似たものを定義できるようにするためです。
+*)
 
 CoFixpoint TBind A B (m1 : thunk A) (m2 : A -> thunk B) : thunk B :=
   match m1 with
@@ -810,9 +973,16 @@ CoFixpoint TBind A B (m1 : thunk A) (m2 : A -> thunk B) : thunk B :=
     | Think m1' => Think (TBind m1' m2)
   end.
 
-(** Note that the definition would violate the co-recursion guardedness restriction if we left out the seemingly superfluous [Think] on the righthand side of the second [match] branch.
+(**
+(* Note that the definition would violate the co-recursion guardedness restriction if we left out the seemingly superfluous [Think] on the righthand side of the second [match] branch.*)
 
-   We can prove that [Answer] and [TBind] form a monad for [thunk].  The proof is omitted here but present in the book source.  As usual for this sort of proof, a key element is choosing an appropriate notion of equality for [thunk]s. *)
+この定義で、[match]の二つめの分岐で右辺の[Think]を省いてしまうと、余再帰のガードに関する制限に違反することに注意してください。
+
+(*   We can prove that [Answer] and [TBind] form a monad for [thunk].  The proof is omitted here but present in the book source.  As usual for this sort of proof, a key element is choosing an appropriate notion of equality for [thunk]s. *)
+
+[Answer]と[TBind]が[thunk]に対するモナドになっていることを証明できます（紙面では証明を省きます）。
+いつものように、この手の証明で鍵となるのは、[thunk]についての適切な等価性を選ぶところです。
+*)
 
 (* begin hide *)
 CoInductive thunk_eq A : thunk A -> thunk A -> Prop :=
@@ -841,7 +1011,11 @@ Section thunk_eq_coind.
 End thunk_eq_coind.
 (* end hide *)
 
-(** In the proofs to follow, we will need a function similar to one we saw in Chapter 5, to pull apart and reassemble a [thunk] in a way that provokes reduction of co-recursive calls. *)
+(**
+(* In the proofs to follow, we will need a function similar to one we saw in Chapter 5, to pull apart and reassemble a [thunk] in a way that provokes reduction of co-recursive calls. *)
+
+以降の証明では、余再帰呼び出しの簡約を引き起こすような形で[thunk]を解体して再構成するために、第5章で見たような関数が必要です。
+*)
 
 Definition frob A (m : thunk A) : thunk A :=
   match m with
@@ -904,7 +1078,11 @@ Theorem tassociativity : forall A B C (m : thunk A) (f : A -> thunk B) (g : B ->
 Qed.
 (* end hide *)
 
-(** As a simple example, here is how we might define a tail-recursive factorial function. *)
+(**
+(* As a simple example, here is how we might define a tail-recursive factorial function. *)
+
+簡単な例として、末尾再帰の階乗関数を定義する方法を考えてみましょう。
+*)
 
 CoFixpoint fact (n acc : nat) : thunk nat :=
   match n with
@@ -912,7 +1090,11 @@ CoFixpoint fact (n acc : nat) : thunk nat :=
     | S n' => Think (fact n' (S n' * acc))
   end.
 
-(** To test our definition, we need an evaluation relation that characterizes results of evaluating [thunk]s. *)
+(**
+(* To test our definition, we need an evaluation relation that characterizes results of evaluating [thunk]s. *)
+
+この定義を試してみるには、[thunk]の評価の結果を特徴付ける評価関係が必要です。
+*)
 
 Inductive eval A : thunk A -> A -> Prop :=
 | EvalAnswer : forall x, eval (Answer x) x
@@ -930,9 +1112,17 @@ Theorem eval_fact : eval (fact 5 1) 120.
   repeat (apply eval_frob; simpl; constructor).
 Qed.
 
-(** We need to apply constructors of [eval] explicitly, but the process is easy to automate completely for concrete input programs.
+(**
+(* We need to apply constructors of [eval] explicitly, but the process is easy to automate completely for concrete input programs. *)
 
-   Now consider another very similar definition, this time of a Fibonacci number function. *)
+[eval]の構成子を明示的に適用する必要がありますが、具体的なプログラムに対しては簡単に自動化できます。
+*)
+
+
+(* Now consider another very similar definition, this time of a Fibonacci number function. *)
+
+よく似た別の定義も見てみましょう。今度の例はフィボナッチ数を生成する関数です。
+*)
 
 Notation "x <- m1 ; m2" :=
   (TBind m1 (fun x => m2)) (right associativity, at level 70).
@@ -943,7 +1133,7 @@ Definition fib := pred.
 (* end thide *)
 (* end hide *)
 
-(** %\vspace{-.3in}%[[
+(** [[
 CoFixpoint fib (n : nat) : thunk nat :=
   match n with
     | 0 => Answer 1
@@ -954,19 +1144,36 @@ CoFixpoint fib (n : nat) : thunk nat :=
   end.
 ]]
 
-Coq complains that the guardedness condition is violated.  The two recursive calls are immediate arguments to [TBind], but [TBind] is not a constructor of [thunk].  Rather, it is a defined function.  This example shows a very serious limitation of [thunk] for traditional functional programming: it is not, in general, possible to make recursive calls and then make further recursive calls, depending on the first call's result.  The [fact] example succeeded because it was already tail recursive, meaning no further computation is needed after a recursive call.
 
-%\medskip%
+(* Coq complains that the guardedness condition is violated.  The two recursive calls are immediate arguments to [TBind], but [TBind] is not a constructor of [thunk].  Rather, it is a defined function.  This example shows a very serious limitation of [thunk] for traditional functional programming: it is not, in general, possible to make recursive calls and then make further recursive calls, depending on the first call's result.  The [fact] example succeeded because it was already tail recursive, meaning no further computation is needed after a recursive call. *)
 
-I know no easy fix for this problem of [thunk], but we can define an alternate co-inductive monad that avoids the problem, based on a proposal by Megacz%~\cite{Megacz}%.  We ran into trouble because [TBind] was not a constructor of [thunk], so let us define a new type family where "bind" is a constructor. *)
+この定義は、Coqにより、ガード条件に違反しているとみなされます。
+[fib]の再帰呼び出しは、すぐに[TBind]の引数になりますが、[TBind]は[thunk]の構成子ではありません。むしろ[TBind]は定義された関数です。
+この例からは、従来の関数プログラミングと比べて、[thunk]には深刻な制限があることがわかります。
+その制限とは、再帰呼び出しに続けてさらに再帰呼び出しをすることが一般にはできないことです。最初の再帰呼び出しの結果によって、可能かどうかが変わります。
+[fact]の例がうまくいったは、末尾再帰になっていて、再帰呼び出しの後にさらに計算が必要ないからでした。
+
+(* I know no easy fix for this problem of [thunk], but we can define an alternate co-inductive monad that avoids the problem, based on a proposal by Megacz%~\cite{Megacz}%.  We ran into trouble because [TBind] was not a constructor of [thunk], so let us define a new type family where "bind" is a constructor. *)
+
+この[thunk]の制限については、簡単な解決策はわかっていませんが、代わりに余帰納モナドを定義して回避するというMegacz%~\cite{Megacz}%の提案に基づく方法が知られています。
+問題になるのは[TBind]が[thunk]の構成子ではないことだったので、bind操作を構成子として持つような型族を新たに定義しましょう。
+*)
 
 CoInductive comp (A : Type) : Type :=
 | Ret : A -> comp A
 | Bnd : forall B, comp B -> (B -> comp A) -> comp A.
 
-(** This example shows off Coq's support for%\index{recursively non-uniform parameters}% _recursively non-uniform parameters_, as in the case of the parameter [A] declared above, where each constructor's type ends in [comp A], but there is a recursive use of [comp] with a different parameter [B].  Beside that technical wrinkle, we see the simplest possible definition of a monad, via a type whose two constructors are precisely the monad operators.
+(**
+(* This example shows off Coq's support for%\index{recursively non-uniform parameters}% _recursively non-uniform parameters_, as in the case of the parameter [A] declared above, where each constructor's type ends in [comp A], but there is a recursive use of [comp] with a different parameter [B].  Beside that technical wrinkle, we see the simplest possible definition of a monad, via a type whose two constructors are precisely the monad operators. *)
 
-   It is easy to define the semantics of terminating [comp] computations. *)
+この例からは、Coqが%\index{異なる変数に対する再帰}% _{異なる変数に対する再帰}_に対応していることがわかります。
+具体的には、上記の宣言では変数[A]に対する場合分けをしており、各構成子の型の最後が[comp A]になっていますが、別の変数[B]でも[comp]を再帰的に使っています。
+この点で技術的には目新しさがありますが、二つの構成子がそのままモナドの演算子になっているという意味で、これ以上ないくらい簡潔なモナドの定義になっています。
+
+(* It is easy to define the semantics of terminating [comp] computations. *)
+
+[comp]の計算の停止性に対するセマンティクスは簡単に定義できます。
+*)
 
 Inductive exec A : comp A -> A -> Prop :=
 | ExecRet : forall x, exec (Ret x) x
@@ -974,7 +1181,11 @@ Inductive exec A : comp A -> A -> Prop :=
   -> exec (f x1) x2
   -> exec (Bnd c f) x2.
 
-(** We can also prove that [Ret] and [Bnd] form a monad according to a notion of [comp] equality based on [exec], but we omit details here; they are in the book source at this point. *)
+(**
+(* We can also prove that [Ret] and [Bnd] form a monad according to a notion of [comp] equality based on [exec], but we omit details here; they are in the book source at this point. *)
+
+[comp]の等価性を[exec]の結果に応じて決めれば、[Ret]と[Bnd]がモナドを形成することも証明できます（紙面では詳細は割愛します）。
+*)
 
 (* begin hide *)
 Hint Constructors exec.
@@ -1031,7 +1242,12 @@ Theorem cassociativity : forall A B C (m : comp A) (f : A -> comp B) (g : B -> c
 Qed.
 (* end hide *)
 
-(** Not only can we define the Fibonacci function with the new monad, but even our running example of merge sort becomes definable.  By shadowing our previous notation for "bind," we can write almost exactly the same code as in our previous [mergeSort'] definition, but with less syntactic clutter. *)
+(**
+(* Not only can we define the Fibonacci function with the new monad, but even our running example of merge sort becomes definable.  By shadowing our previous notation for "bind," we can write almost exactly the same code as in our previous [mergeSort'] definition, but with less syntactic clutter. *)
+
+このモナドで定義できるのはフィボナッチ関数だけではありません。マージソートも定義可能です。
+bind操作に対する以前の記法を隠すことで、先の[mergeSort']の定義とほとんど同じコードを、よりすっきりとしたシンタックスで書けます。
+*)
 
 Notation "x <- m1 ; m2" := (Bnd m1 (fun x => m2)).
 
@@ -1043,7 +1259,11 @@ CoFixpoint mergeSort'' A (le : A -> A -> bool) (ls : list A) : comp (list A) :=
       Ret (merge le ls1 ls2)
     else Ret ls.
 
-(** To execute this function, we go through the usual exercise of writing a function to catalyze evaluation of co-recursive calls. *)
+(**
+(* To execute this function, we go through the usual exercise of writing a function to catalyze evaluation of co-recursive calls. *)
+
+この関数を実行するには、いつものように、余再帰呼び出しの評価に対して触媒となる関数を書きます。
+*)
 
 Definition frob' A (c : comp A) :=
   match c with
@@ -1057,18 +1277,31 @@ Lemma exec_frob : forall A (c : comp A) x,
   destruct c; crush.
 Qed.
 
-(** Now the same sort of proof script that we applied for testing [thunk]s will get the job done. *)
+(**
+(* Now the same sort of proof script that we applied for testing [thunk]s will get the job done. *)
+
+あとは、[thunk]のテストで適用した証明スクリプトと同様にするだけです。
+*)
 
 Lemma test_mergeSort'' : exec (mergeSort'' leb (1 :: 2 :: 36 :: 8 :: 19 :: nil))
   (1 :: 2 :: 8 :: 19 :: 36 :: nil).
   repeat (apply exec_frob; simpl; econstructor).
 Qed.
 
-(** Have we finally reached the ideal solution for encoding general recursive definitions, with minimal hassle in syntax and proof obligations?  Unfortunately, we have not, as [comp] has a serious expressivity weakness.  Consider the following definition of a curried addition function: *)
+(**
+(* Have we finally reached the ideal solution for encoding general recursive definitions, with minimal hassle in syntax and proof obligations?  Unfortunately, we have not, as [comp] has a serious expressivity weakness.  Consider the following definition of a curried addition function: *)
+
+これで、シンタックスやproof obligationになるべく煩わされずに一般再帰の定義をエンコードする、理想的な方法に行きついたでしょうか。
+残念ながら行きついていません。[comp]には表現性の面で大きな弱点があるからです。
+カリー化された加算の関数に対する次のような定義を考えてみてください。
+*)
 
 Definition curriedAdd (n : nat) := Ret (fun m : nat => Ret (n + m)).
 
-(** This definition works fine, but we run into trouble when we try to apply it in a trivial way.
+(**
+(* This definition works fine, but we run into trouble when we try to apply it in a trivial way. *)
+
+これは、定義はできるものの、自明な形で適用しようとすると問題が生じます。
 [[
 Definition testCurriedAdd := Bnd (curriedAdd 2) (fun f => f 3).
 ]]
@@ -1077,30 +1310,78 @@ Definition testCurriedAdd := Bnd (curriedAdd 2) (fun f => f 3).
 Error: Universe inconsistency.
 >>
 
-The problem has to do with rules for inductive definitions that we will study in more detail in Chapter 12.  Briefly, recall that the type of the constructor [Bnd] quantifies over a type [B].  To make [testCurriedAdd] work, we would need to instantiate [B] as [nat -> comp nat].  However, Coq enforces a %\emph{predicativity restriction}% that (roughly) no quantifier in an inductive or co-inductive type's definition may ever be instantiated with a term that contains the type being defined.  Chapter 12 presents the exact mechanism by which this restriction is enforced, but for now our conclusion is that [comp] is fatally flawed as a way of encoding interesting higher-order functional programs that use general recursion. *)
+(* The problem has to do with rules for inductive definitions that we will study in more detail in Chapter 12.  Briefly, recall that the type of the constructor [Bnd] quantifies over a type [B].  To make [testCurriedAdd] work, we would need to instantiate [B] as [nat -> comp nat].  However, Coq enforces a %\emph{predicativity restriction}% that (roughly) no quantifier in an inductive or co-inductive type's definition may ever be instantiated with a term that contains the type being defined.  Chapter 12 presents the exact mechanism by which this restriction is enforced, but for now our conclusion is that [comp] is fatally flawed as a way of encoding interesting higher-order functional programs that use general recursion. *)
 
+この問題は、帰納的な定義に対する規則に関係しており、この規則については第12章で詳しく解説します。
+簡単に言うと、ここで問題になるのは、構成子[Bnd]の型が[B]で限量されていることです。
+[testCurriedAdd]を動かすには、[nat -> comp nat]として[B]をインスタンスする必要があるでしょう。
+しかし、Coqには%\emph{可述性の制限}%という規則があり、帰納型や余帰納型の定義における限量子は、定義している型を含む項を使ってインスタンス化されてはいけません（これは厳密な説明ではありません）。
+この制限が課される仕組みについては第12章で正確に説明しますが、今のところはっきり言えるのは、一般再帰を利用した高階の面白い関数プログラムをエンコードするには[comp]には致命的な欠点がある、ということです。
+*)
 
-(** * Comparing the Alternatives *)
+(**
+(* * Comparing the Alternatives *)
 
-(** We have seen four different approaches to encoding general recursive definitions in Coq.  Among them there is no clear champion that dominates the others in every important way.  Instead, we close the chapter by comparing the techniques along a number of dimensions.  Every technique allows recursive definitions with termination arguments that go beyond Coq's built-in termination checking, so we must turn to subtler points to highlight differences.
+* 各手法の比較
+*)
 
-   One useful property is automatic integration with normal Coq programming.  That is, we would like the type of a function to be the same, whether or not that function is defined using an interesting recursion pattern.  Only the first of the four techniques, well-founded recursion, meets this criterion.  It is also the only one of the four to meet the related criterion that evaluation of function calls can take place entirely inside Coq's built-in computation machinery.  The monad inspired by domain theory occupies some middle ground in this dimension, since generally standard computation is enough to evaluate a term once a high enough approximation level is provided.
+(**
+(* We have seen four different approaches to encoding general recursive definitions in Coq.  Among them there is no clear champion that dominates the others in every important way.  Instead, we close the chapter by comparing the techniques along a number of dimensions.  Every technique allows recursive definitions with termination arguments that go beyond Coq's built-in termination checking, so we must turn to subtler points to highlight differences.*)
 
-   Another useful property is that a function and its termination argument may be developed separately.  We may even want to define functions that fail to terminate on some or all inputs.  The well-founded recursion technique does not have this property, but the other three do.
+本章では、Coqで一般再帰の定義をエンコードする四つの技法を見てきました。
+四つの技法のいずれにも、それ以外の技法をすべての面で圧倒するような利点はありません。
+そこで、本章を締めくくるにあたり、さまざまな側面について各技法を比較してみます。
+いずれの技法も、「Coqに組み込みの機構では引数による停止性を確かめられないような再帰的な定義を可能にする」という点では同等です。
+したがって、技法による違いを示すため、かなり些細な部分について言及していきます。
 
-   One minor plus is the ability to write recursive definitions in natural syntax, rather than with calls to higher-order combinators.  This downside of the first two techniques is actually rather easy to get around using Coq's notation mechanism, though we leave the details as an exercise for the reader.  (For this and other details of notations, see Chapter 12 of the Coq 8.4 manual.)
+(* One useful property is automatic integration with normal Coq programming.  That is, we would like the type of a function to be the same, whether or not that function is defined using an interesting recursion pattern.  Only the first of the four techniques, well-founded recursion, meets this criterion.  It is also the only one of the four to meet the related criterion that evaluation of function calls can take place entirely inside Coq's built-in computation machinery.  The monad inspired by domain theory occupies some middle ground in this dimension, since generally standard computation is enough to evaluate a term once a high enough approximation level is provided. *)
 
-   The first two techniques impose proof obligations that are more basic than termination arguments, where well-founded recursion requires a proof of extensionality and domain-theoretic recursion requires a proof of continuity.  A function may not be defined, and thus may not be computed with, until these obligations are proved.  The co-inductive techniques avoid this problem, as recursive definitions may be made without any proof obligations.
+まず気になるのは通常のCoqプログラミングにおける使い勝手です。
+関数の型が一般再帰で定義するかどうかによって変わってしまうと、何も考えずに通常のCoqプログラミングと統合するのが難しくなります。
+この基準を満たすのは、本章の四つの技法のうち一つめに説明した整礎な再帰による技法だけです。
+整礎な再帰による技法は、四つのうちで「関数の呼び出しが起こるのがCoqの組み込みの計算機構の内部だけである」という基準を満たす唯一の技法でもあります。
+領域理論を応用したモナドによる技法は、十分に高い近似レベルさえ与えれば標準的な計算だけで通常は項を評価できるので、この点では中庸です。
 
-   We can also consider support for common idioms in functional programming.  For instance, the [thunk] monad effectively only supports recursion that is tail recursion, while the others allow arbitrary recursion schemes.
+(*   Another useful property is that a function and its termination argument may be developed separately.  We may even want to define functions that fail to terminate on some or all inputs.  The well-founded recursion technique does not have this property, but the other three do. *)
 
-   On the other hand, the [comp] monad does not support the effective mixing of higher-order functions and general recursion, while all the other techniques do.  For instance, we can finish the failed [curriedAdd] example in the domain-theoretic monad. *)
+もうひとつ気になるのは、関数とその停止性を決める引数を別々に開発できるかどうかです。
+場合によっては、特定の入力に対して停止しなかったり、すべての入力について停止しない関数を定義したいこともあります。
+この性質は、整礎な再帰による技法にはありませんが、他の三つの技法にはあります。
+
+(*   One minor plus is the ability to write recursive definitions in natural syntax, rather than with calls to higher-order combinators.  This downside of the first two techniques is actually rather easy to get around using Coq's notation mechanism, though we leave the details as an exercise for the reader.  (For this and other details of notations, see Chapter 12 of the Coq 8.4 manual.) *)
+
+マイナーな観点として、再帰的な定義を書くのに高階の結合子を呼び出す必要がなく、自然なシンタックスで書けるかどうかも気になります。
+この点で本章の前半の二つの技法は劣っていますが、記法に関するCoqの仕組みを使えば比較的容易に対処可能です。
+実際にどうすればいいかは本書では割愛します（記法に関するCoqの仕組みについてはCoq 8.4のマニュアルのChapter 12を参照してください）。
+
+(*   The first two techniques impose proof obligations that are more basic than termination arguments, where well-founded recursion requires a proof of extensionality and domain-theoretic recursion requires a proof of continuity.  A function may not be defined, and thus may not be computed with, until these obligations are proved.  The co-inductive techniques avoid this problem, as recursive definitions may be made without any proof obligations. *)
+
+proof obligationを課すということは、引数による停止性の確認に比べて、より基本的な部分に踏み込むということです。
+整礎な再帰では関数の外延性に関するproof obligationを課し、領域理論を応用した再帰では継続に関するproof obligationを課しました。
+これらのproof obligationが証明されない限り関数は定義されず、それゆえに関数を使った計算も起こりません。
+余帰納による技法では、proof obligationなしで再帰的な定義が可能であることから、この問題を回避できます。
+
+(*   We can also consider support for common idioms in functional programming.  For instance, the [thunk] monad effectively only supports recursion that is tail recursion, while the others allow arbitrary recursion schemes.*)
+
+一般的な関数プログラミングのイディオムに対応しているかどうかも気になります。
+たとえば、[thunk]モナドは末尾再帰にしか対応していませんが、他の技法は任意の種類の再帰に対応しています。
+
+(*   On the other hand, the [comp] monad does not support the effective mixing of higher-order functions and general recursion, while all the other techniques do.  For instance, we can finish the failed [curriedAdd] example in the domain-theoretic monad. *)
+
+また、[comp]モナド以外の技法では、高階関数と一般再帰を効果的に組み合わせることが可能です。
+たとえば、前節でうまくいかなかった[curriedAdd]の定義は、領域理論を応用した技法では次のようにして完遂できます。
+*)
 
 Definition curriedAdd' (n : nat) := Return (fun m : nat => Return (n + m)).
 
 Definition testCurriedAdd := Bind (curriedAdd' 2) (fun f => f 3).
 
-(** The same techniques also apply to more interesting higher-order functions like list map, and, as in all four techniques, we can mix primitive and general recursion, preferring the former when possible to avoid proof obligations. *)
+(**
+(* The same techniques also apply to more interesting higher-order functions like list map, and, as in all four techniques, we can mix primitive and general recursion, preferring the former when possible to avoid proof obligations. *)
+
+同じ技法は、リストに対するmapのような、より興味深い高階関数にも適用できます。
+四つの技法のそれぞれの例で見たように、原子再帰と一般再帰を組み合わせて、可能な場合には原子再帰を優先してproof obligationsを回避するようにできます。
+*)
 
 Fixpoint map A B (f : A -> computation B) (ls : list A) : computation (list B) :=
   match ls with
@@ -1116,6 +1397,14 @@ Theorem test_map : run (map (fun x => Return (S x)) (1 :: 2 :: 3 :: nil))
   exists 1; reflexivity.
 Qed.
 
-(** One further disadvantage of [comp] is that we cannot prove an inversion lemma for executions of [Bind] without appealing to an _axiom_, a logical complication that we discuss at more length in Chapter 12.  The other three techniques allow proof of all the important theorems within the normal logic of Coq.
+(**
+(* One further disadvantage of [comp] is that we cannot prove an inversion lemma for executions of [Bind] without appealing to an _axiom_, a logical complication that we discuss at more length in Chapter 12.  The other three techniques allow proof of all the important theorems within the normal logic of Coq.*)
 
-Perhaps one theme of our comparison is that one must trade off between, on one hand, functional programming expressiveness and compatibility with normal Coq types and computation; and, on the other hand, the level of proof obligations one is willing to handle at function definition time. *)
+さらに[comp]には、_[公理]_を利用しなければ[Bind]の実行のための逆転の補題を証明できないという、論理的な難点もあります（詳細は第12章で説明します）。
+それ以外の三つの技法は、通常のCoqの論理の内部で、重要な定理をすべて証明できます。
+
+(* Perhaps one theme of our comparison is that one must trade off between, on one hand, functional programming expressiveness and compatibility with normal Coq types and computation; and, on the other hand, the level of proof obligations one is willing to handle at function definition time. *)
+
+四つの技法の比較を通して見えてくるのは、「関数プログラミングの表現力」と「通常のCoqの型および計算との互換性」との間には一種のトレードオフがあるということです。
+これは、関数を定義する際に対処しようと思うproof obligationのレベルによる相違だと考えることもできるでしょう。
+*)
