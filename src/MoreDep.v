@@ -19,16 +19,42 @@ Set Asymmetric Patterns.
 (* end hide *)
 
 
-(** %\chapter{More Dependent Types}% *)
+(**
+(* %\chapter{More Dependent Types}% *)
 
-(** Subset types and their relatives help us integrate verification with programming.  Though they reorganize the certified programmer's workflow, they tend not to have deep effects on proofs.  We write largely the same proofs as we would for classical verification, with some of the structure moved into the programs themselves.  It turns out that, when we use dependent types to their full potential, we warp the development and proving process even more than that, picking up "free theorems" to the extent that often a certified program is hardly more complex than its uncertified counterpart in Haskell or ML.
+%\chapter{もっと依存型}%
+*)
 
-   In particular, we have only scratched the tip of the iceberg that is Coq's inductive definition mechanism.  The inductive types we have seen so far have their counterparts in the other proof assistants that we surveyed in Chapter 1.  This chapter explores the strange new world of dependent inductive datatypes outside [Prop], a possibility that sets Coq apart from all of the competition not based on type theory. *)
+(**
+(* Subset types and their relatives help us integrate verification with programming.  Though they reorganize the certified programmer's workflow, they tend not to have deep effects on proofs.  We write largely the same proofs as we would for classical verification, with some of the structure moved into the programs themselves.  It turns out that, when we use dependent types to their full potential, we warp the development and proving process even more than that, picking up "free theorems" to the extent that often a certified program is hardly more complex than its uncertified counterpart in Haskell or ML.*)
+
+部分集合型とそれに関連する技法はプログラムと検証の統合に役立ちます。
+それらの技法によって証明付きプログラムを書く際のワークフローは変わりますが、証明に深刻な影響が及ぼされるわけではありません。
+古典的な検証の場合とおおむね同一の証明を、その構造の一部をプログラム自体の内部に移動して書くことになります。
+証明付きプログラムの複雑さは、便利な定理を選ぶことで、証明なしのHaskellやMLのコードと遜色がないものになることも多々あります。
+そのような便利な定理を選び、依存型をその潜在能力の限界まで使いこなすことで、開発と証明のプロセスを通常とはかなり異なるものにできます。
+
+(*   In particular, we have only scratched the tip of the iceberg that is Coq's inductive definition mechanism.  The inductive types we have seen so far have their counterparts in the other proof assistants that we surveyed in Chapter 1.  This chapter explores the strange new world of dependent inductive datatypes outside [Prop], a possibility that sets Coq apart from all of the competition not based on type theory. *)
+
+帰納的な定義に関するCoqの機能のうち、これまでに紹介したのはごく一部です。
+それらの帰納型に対応するものは、第1章でまとめた他の証明支援系にも備わっています。
+本章では、他の証明支援系にはない型理論に基づいたCoqならではの可能性として、[Prop]の範疇に入らない帰納的で奇妙なデータ型を依存型により探訪します。
+*)
 
 
-(** * Length-Indexed Lists *)
+(**
+(* * Length-Indexed Lists *)
 
-(** Many introductions to dependent types start out by showing how to use them to eliminate array bounds checks%\index{array bounds checks}%.  When the type of an array tells you how many elements it has, your compiler can detect out-of-bounds dereferences statically.  Since we are working in a pure functional language, the next best thing is length-indexed lists%\index{length-indexed lists}%, which the following code defines. *)
+* 長さの情報を持つリスト
+*)
+
+(**
+(* Many introductions to dependent types start out by showing how to use them to eliminate array bounds checks%\index{array bounds checks}%.  When the type of an array tells you how many elements it has, your compiler can detect out-of-bounds dereferences statically.  Since we are working in a pure functional language, the next best thing is length-indexed lists%\index{length-indexed lists}%, which the following code defines. *)
+
+依存型の説明では、依存型によって%\index{配列の境界チェック}%配列の境界チェックをなくす方法が紹介されることがよくあります。
+配列の型から格納している要素の個数がわかれば、境界を越えた参照をコンパイラが静的に探知できます。
+純粋な関数型言語における次善策は、下記のコードで定理される%\index{長さの情報を持つリスト}%長さの情報を持つリストでしょう。
+*)
 
 Section ilist.
   Variable A : Set.
@@ -37,11 +63,25 @@ Section ilist.
   | Nil : ilist O
   | Cons : forall n, A -> ilist n -> ilist (S n).
 
-(** We see that, within its section, [ilist] is given type [nat -> Set].  Previously, every inductive type we have seen has either had plain [Set] as its type or has been a predicate with some type ending in [Prop].  The full generality of inductive definitions lets us integrate the expressivity of predicates directly into our normal programming.
+(**
+(* We see that, within its section, [ilist] is given type [nat -> Set].  Previously, every inductive type we have seen has either had plain [Set] as its type or has been a predicate with some type ending in [Prop].  The full generality of inductive definitions lets us integrate the expressivity of predicates directly into our normal programming.*)
 
-   The [nat] argument to [ilist] tells us the length of the list.  The types of [ilist]'s constructors tell us that a [Nil] list has length [O] and that a [Cons] list has length one greater than the length of its tail.  We may apply [ilist] to any natural number, even natural numbers that are only known at runtime.  It is this breaking of the%\index{phase distinction}% _phase distinction_ that characterizes [ilist] as _dependently typed_.
+セクション内で[ilist]の型は[nat -> Set]になります。
+これまで見た帰納型はいずれも、型として単純な[Set]を持つか、[Prop]で終端する型の述語を持っていました。
+この述語による表現性が、完全に一般化した帰納的な定義により、通常のプログラミングへと直接統合できるのです。
 
-   In expositions of list types, we usually see the length function defined first, but here that would not be a very productive function to code.  Instead, let us implement list concatenation. *)
+(*   The [nat] argument to [ilist] tells us the length of the list.  The types of [ilist]'s constructors tell us that a [Nil] list has length [O] and that a [Cons] list has length one greater than the length of its tail.  We may apply [ilist] to any natural number, even natural numbers that are only known at runtime.  It is this breaking of the%\index{phase distinction}% _phase distinction_ that characterizes [ilist] as _dependently typed_. *)
+
+[ilist]の引数[nat]からは、そのリストの長さがわかります。
+[ilist]の構成子の型からは、リストが[Nil]の場合は長さが[0]であり、[Cons]の場合は末尾（tail）の長さよりも1だけ長いことがわかります。
+[ilist]は任意の自然数に適用できます。これは、その自然数が実行時にならないと判明しない場合でも可能です。
+このようにコンパイルと実行の区別（%\index{phase distinction}% _phase distinction_）がないことが、[ilist]が_[依存型]_であることを特徴づけています。
+
+(*   In expositions of list types, we usually see the length function defined first, but here that would not be a very productive function to code.  Instead, let us implement list concatenation. *)
+
+通常であれば、リストに対してまずは長さの関数を定義するところですが、この例ではそのような関数をコードで定義することにあまり意味はないでしょう。
+そこで代わりにリストの結合を実装することにします。
+*)
 
   Fixpoint app n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) : ilist (n1 + n2) :=
     match ls1 with
@@ -49,7 +89,14 @@ Section ilist.
       | Cons _ x ls1' => Cons x (app ls1' ls2)
     end.
 
-  (** Past Coq versions signalled an error for this definition.  The code is still invalid within Coq's core language, but current Coq versions automatically add annotations to the original program, producing a valid core program.  These are the annotations on [match] discriminees that we began to study in the previous chapter.  We can rewrite [app] to give the annotations explicitly. *)
+  (**
+  (* Past Coq versions signalled an error for this definition.  The code is still invalid within Coq's core language, but current Coq versions automatically add annotations to the original program, producing a valid core program.  These are the annotations on [match] discriminees that we began to study in the previous chapter.  We can rewrite [app] to give the annotations explicitly. *)
+  
+  古いバージョンのCoqでは、この定義はエラーになります。
+  現行のバージョンでは、依然としてCoqのコア言語では不正な定義なのですが、自動的に元のプログラムに注釈が付加されて有効なプログラムになります。
+  ここで自動的に付加される注釈というのは、[match]の引数に対するものです。
+  この注釈を明示して[app]を書き換えることも可能です。
+  *)
 
 (* begin thide *)
   Fixpoint app' n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) : ilist (n1 + n2) :=
@@ -59,11 +106,33 @@ Section ilist.
     end.
 (* end thide *)
 
-(** Using [return] alone allowed us to express a dependency of the [match] result type on the _value_ of the discriminee.  What %\index{Gallina terms!in}%[in] adds to our arsenal is a way of expressing a dependency on the _type_ of the discriminee.  Specifically, the [n1] in the [in] clause above is a _binding occurrence_ whose scope is the [return] clause.
+(**
+(* Using [return] alone allowed us to express a dependency of the [match] result type on the _value_ of the discriminee.  What %\index{Gallina terms!in}%[in] adds to our arsenal is a way of expressing a dependency on the _type_ of the discriminee.  Specifically, the [n1] in the [in] clause above is a _binding occurrence_ whose scope is the [return] clause.*)
 
-We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for _parameters_ to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.
+[match]の結果の型が、その引数の_[値]_に依存していることは、[return]だけを使って表現できます。
+さらに%\index{Gallina terms!in}%[in]を使うことで、引数の_[型]_への依存を表現できます。
+具体的には、上記における[in]節で、[return]節をスコープとして[n1]を束縛しています。
 
-Our [app] function could be typed in so-called%\index{stratified type systems}% _stratified_ type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  Compile-time data may be _erased_ such that we can still execute a program.  As an example where erasure would not work, consider an injection function from regular lists to length-indexed lists.  Here the run-time computation actually depends on details of the compile-time argument, if we decide that the list to inject can be considered compile-time.  More commonly, we think of lists as run-time data.  Neither case will work with %\%naive%{}% erasure.  (It is not too important to grasp the details of this run-time/compile-time distinction, since Coq's expressive power comes from avoiding such restrictions.) *)
+(* We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for _parameters_ to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.*)
+
+[in]節を、帰納的な型族に対する引数に名前を束縛するためだけに使うこともできます。
+これは言い換えると、どんな[in]節も「適切な個数のアンダースコアおよび変数名を並べた列が帰納的な型族の名前に適用された形」になるということです。
+なお、型族に対する_[パラメータ]_が位置する場所には、すべてアンダースコアを置きます。
+ここでパラメータと言っているのは、セクションの変数もしくは帰納的な定義における最初のコロンの左側にある項目を使って記述される引数のことです。
+このような引数は、[match]の対象を組み立てるのに使われた構成子が何であるかによって変わることはありえないので、それらに対する無意味なマッチはCoqでは禁止されています。
+[in]節で名前を付けてよいのは、コロンの右側にある型で定義された引数です。
+
+(* Our [app] function could be typed in so-called%\index{stratified type systems}% _stratified_ type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  Compile-time data may be _erased_ such that we can still execute a program.  As an example where erasure would not work, consider an injection function from regular lists to length-indexed lists.  Here the run-time computation actually depends on details of the compile-time argument, if we decide that the list to inject can be considered compile-time.  More commonly, we think of lists as run-time data.  Neither case will work with %\%naive%{}% erasure.  (It is not too important to grasp the details of this run-time/compile-time distinction, since Coq's expressive power comes from avoiding such restrictions.) *)
+
+[app]関数は、いわゆる%\index{stratified type system}%_層化_された型システム（stratified type system）でも型付けが可能であり、この場合は真に依存が回避されます。
+言い換えると、リストの長さを示す情報を、リスト自体ではなく、まったく別のコンパイル時のみの世界における情報とみなすということです。
+コンパイル時に使われるデータは、プログラムの実行は可能なままで_[消去]_される場合もありえます。
+消去するとうまくいかない例として、長さの情報を持ったリストに通常のリストを挿入する関数を考えてみてください。
+この場合、挿入するリストをコンパイル時に考慮することになるので、実行時の計算が実際にコンパイル時の引数の詳細に依存します。
+そもそもリストは実行時のデータであると考えるのが一般的です。
+いずれにせよ、素朴にデータを消去するとうまくいきません。
+（実行時とコンパイル時の区別がよく把握できなくても大丈夫です。そのような区別による制限に縛られないことがCoqの表現力を生むのです。）
+*)
 
 (* EX: Implement injection from normal lists *)
 
@@ -74,7 +143,11 @@ Our [app] function could be typed in so-called%\index{stratified type systems}% 
       | h :: t => Cons h (inject t)
     end.
 
-(** We can define an inverse conversion and prove that it really is an inverse. *)
+(**
+(* We can define an inverse conversion and prove that it really is an inverse. *)
+
+逆向きの変換を定義し、それが本当に逆向きであることの証明もできます。
+*)
 
   Fixpoint unject n (ls : ilist n) : list A :=
     match ls with
@@ -89,7 +162,13 @@ Our [app] function could be typed in so-called%\index{stratified type systems}% 
 
 (* EX: Implement statically checked "car"/"hd" *)
 
-(** Now let us attempt a function that is surprisingly tricky to write.  In ML, the list head function raises an exception when passed an empty list.  With length-indexed lists, we can rule out such invalid calls statically, and here is a first attempt at doing so.  We write [???] as a placeholder for a term that we do not know how to write, not for any real Coq notation like those introduced two chapters ago.
+(**
+(* Now let us attempt a function that is surprisingly tricky to write.  In ML, the list head function raises an exception when passed an empty list.  With length-indexed lists, we can rule out such invalid calls statically, and here is a first attempt at doing so.  We write [???] as a placeholder for a term that we do not know how to write, not for any real Coq notation like those introduced two chapters ago. *)
+
+次は、意外なほど書くのが大変な関数に挑戦しましょう。
+MLでは、リストの先頭を取る関数に空リストを渡すと例外が発生します。
+長さの情報を持ったリストであれば、そのような不正な呼び出しを静的に除外できます。これに挑戦してみることにします。
+まず、いまはまだ書き方がわからない項を[???]とおいて、次のように書いてみます。
 [[
   Definition hd n (ls : ilist (S n)) : A :=
     match ls with
@@ -97,7 +176,10 @@ Our [app] function could be typed in so-called%\index{stratified type systems}% 
       | Cons _ h _ => h
     end.
 ]]
-It is not clear what to write for the [Nil] case, so we are stuck before we even turn our function over to the type checker.  We could try omitting the [Nil] case:
+(* It is not clear what to write for the [Nil] case, so we are stuck before we even turn our function over to the type checker.  We could try omitting the [Nil] case: *)
+
+場合分けの[Nil]に対して何を書くべきかわからないままだと、この関数を型チェックにかけることもできません。
+[Nil]に対する場合分けを省いて試してみることはできます。
 [[
   Definition hd n (ls : ilist (S n)) : A :=
     match ls with
@@ -109,8 +191,13 @@ It is not clear what to write for the [Nil] case, so we are stuck before we even
 Error: Non exhaustive pattern-matching: no clause found for pattern Nil
 >>
 
-Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a <<Match>> exception to be thrown.  In fact, recent versions of Coq _do_ allow this, by implicit translation to a [match] that considers all constructors; the error message above was generated by an older Coq version.  It is educational to discover for ourselves the encoding that the most recent Coq versions use.  We might try using an [in] clause somehow.
+(* Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a <<Match>> exception to be thrown.  In fact, recent versions of Coq _do_ allow this, by implicit translation to a [match] that considers all constructors; the error message above was generated by an older Coq version.  It is educational to discover for ourselves the encoding that the most recent Coq versions use.  We might try using an [in] clause somehow. *)
 
+MLと違って<<Match>>に対する例外という概念がないので、Coqでは網羅的でないパターンマッチは使えません。
+しかし実を言うと、比較的新しいバージョンのCoqでは、すべての構成子を考慮する[match]への暗黙の変換によって網羅的でないパターンが許容されます。
+上記のエラーメッセージも、古いバージョンのCoqが生成するものです。
+ここでは、そのほうが教育的なので、新しいバージョンで利用されるエンコードの手法を自分たちの手で見つけることにします。
+[in]節をうまく使えないか試してみましょう。
 [[
   Definition hd n (ls : ilist (S n)) : A :=
     match ls in (ilist (S n)) with
@@ -118,13 +205,20 @@ Unlike in ML, we cannot use inexhaustive pattern matching, because there is no c
     end.
 ]]
 
-<<
+<
 Error: The reference n was not found in the current environment
 >>
+(* In this and other cases, we feel like we want [in] clauses with type family arguments that are not variables.  Unfortunately, Coq only supports variables in those positions.  A completely general mechanism could only be supported with a solution to the problem of higher-order unification%~\cite{HOU}%, which is undecidable.  There _are_ useful heuristics for handling non-variable indices which are gradually making their way into Coq, but we will spend some time in this and the next few chapters on effective pattern matching on dependent types using only the primitive [match] annotations. *)
 
-In this and other cases, we feel like we want [in] clauses with type family arguments that are not variables.  Unfortunately, Coq only supports variables in those positions.  A completely general mechanism could only be supported with a solution to the problem of higher-order unification%~\cite{HOU}%, which is undecidable.  There _are_ useful heuristics for handling non-variable indices which are gradually making their way into Coq, but we will spend some time in this and the next few chapters on effective pattern matching on dependent types using only the primitive [match] annotations.
+この例に限らず、変数になっていない型族の引数を[in]節で使いたくなる場合があります。
+残念ながら、Coqの[in]節で使えるのは変数だけです。
+変数でない引数も[in]節で使えるような、完全に汎用な仕組みには、高階ユニフィケーションの問題に対する解決策%~\cite{HOU}%が必要であり、これは非決定的な問題です。
+変数でない引数を扱うための便利なヒューリスティックスは存在し、段階的にCoqにうまく取り込まれていますが、本章と以降の何章かでは、[match]への基本的な注釈のみを使って、依存型に対する効果的なパターンマッチを書く方法を解説します。
 
-Our final, working attempt at [hd] uses an auxiliary function and a surprising [return] annotation. *)
+(* Our final, working attempt at [hd] uses an auxiliary function and a surprising [return] annotation. *)
+
+最終的には、びっくりするような[return]注釈を使った補助関数によって[hd]をうまく定義できます。
+*)
 
 (* begin thide *)
   Definition hd' n (ls : ilist n) :=
@@ -148,7 +242,14 @@ hd'
 
 End ilist.
 
-(** We annotate our main [match] with a type that is itself a [match].  We write that the function [hd'] returns [unit] when the list is empty and returns the carried type [A] in all other cases.  In the definition of [hd], we just call [hd'].  Because the index of [ls] is known to be nonzero, the type checker reduces the [match] in the type of [hd'] to [A]. *)
+(**
+(* We annotate our main [match] with a type that is itself a [match].  We write that the function [hd'] returns [unit] when the list is empty and returns the carried type [A] in all other cases.  In the definition of [hd], we just call [hd'].  Because the index of [ls] is known to be nonzero, the type checker reduces the [match] in the type of [hd'] to [A]. *)
+
+上記では、[match]に対し、やはり[match]で示された型による注釈をつけています。
+補助関数[hd']は、リストが空のときは[unit]を返し、それ以外のときは型[A]を繰り越します。
+[hd]の定義では、単に[hd']を呼び出します。
+[ls]については長さの情報がゼロではないとわかっているので、型チェッカーにより[match]の型は[hd']の型（この場合は[A]）であると導出します。
+*)
 
 
 (** * The One Rule of Dependent Pattern Matching in Coq *)
