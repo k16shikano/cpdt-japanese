@@ -28,8 +28,8 @@ Set Asymmetric Patterns.
 (**
 (* Subset types and their relatives help us integrate verification with programming.  Though they reorganize the certified programmer's workflow, they tend not to have deep effects on proofs.  We write largely the same proofs as we would for classical verification, with some of the structure moved into the programs themselves.  It turns out that, when we use dependent types to their full potential, we warp the development and proving process even more than that, picking up "free theorems" to the extent that often a certified program is hardly more complex than its uncertified counterpart in Haskell or ML.*)
 
-部分集合型とそれに関連する技法はプログラムと検証の統合に役立ちます。
-それらの技法によって証明付きプログラムを書く際のワークフローは変わりますが、証明に深刻な影響が及ぼされるわけではありません。
+部分集合型とそれに関連する技法はプログラムと検証を統合するのに役立ちます。
+技法によって証明付きプログラムを書く際のワークフローは変わりますが、証明に深刻な影響が及ぼされるわけではありません。
 古典的な検証の場合とおおむね同一の証明を、その構造の一部をプログラム自体の内部に移動して書くことになります。
 証明付きプログラムの複雑さは、便利な定理を選ぶことで、証明なしのHaskellやMLのコードと遜色がないものになることも多々あります。
 そのような便利な定理を選び、依存型をその潜在能力の限界まで使いこなすことで、開発と証明のプロセスを通常とはかなり異なるものにできます。
@@ -51,7 +51,7 @@ Set Asymmetric Patterns.
 (**
 (* Many introductions to dependent types start out by showing how to use them to eliminate array bounds checks%\index{array bounds checks}%.  When the type of an array tells you how many elements it has, your compiler can detect out-of-bounds dereferences statically.  Since we are working in a pure functional language, the next best thing is length-indexed lists%\index{length-indexed lists}%, which the following code defines. *)
 
-依存型の説明では、依存型によって%\index{配列の境界チェック}%配列の境界チェックをなくす方法が紹介されることがよくあります。
+依存型の説明では、%\index{配列の境界チェック}%配列の境界チェックを依存型によってなくす方法が紹介されることがよくあります。
 配列の型から格納している要素の個数がわかれば、境界を越えた参照をコンパイラが静的に探知できます。
 純粋な関数型言語における次善策は、下記のコードで定理される%\index{長さの情報を持つリスト}%長さの情報を持つリストでしょう。
 *)
@@ -66,7 +66,7 @@ Section ilist.
 (**
 (* We see that, within its section, [ilist] is given type [nat -> Set].  Previously, every inductive type we have seen has either had plain [Set] as its type or has been a predicate with some type ending in [Prop].  The full generality of inductive definitions lets us integrate the expressivity of predicates directly into our normal programming.*)
 
-セクション内で[ilist]の型は[nat -> Set]になります。
+[ilist]の型は、そのセクション内で[nat -> Set]になります。
 これまで見た帰納型はいずれも、型として単純な[Set]を持つか、[Prop]で終端する型の述語を持っていました。
 この述語による表現性が、完全に一般化した帰納的な定義により、通常のプログラミングへと直接統合できるのです。
 
@@ -251,16 +251,40 @@ End ilist.
 [ls]については長さの情報がゼロではないとわかっているので、型チェッカーにより[match]の型は[hd']の型（この場合は[A]）であると導出します。
 *)
 
+(**
+(* * The One Rule of Dependent Pattern Matching in Coq *)
 
-(** * The One Rule of Dependent Pattern Matching in Coq *)
+* 依存型のパターンマッチの唯一の規則
+*)
 
-(** The rest of this chapter will demonstrate a few other elegant applications of dependent types in Coq.  Readers encountering such ideas for the first time often feel overwhelmed, concluding that there is some magic at work whereby Coq sometimes solves the halting problem for the programmer and sometimes does not, applying automated program understanding in a way far beyond what is found in conventional languages.  The point of this section is to cut off that sort of thinking right now!  Dependent type-checking in Coq follows just a few algorithmic rules.  Chapters 10 and 12 introduce many of those rules more formally, and the main additional rule is centered on%\index{dependent pattern matching}% _dependent pattern matching_ of the kind we met in the previous section.
+(**
+(* The rest of this chapter will demonstrate a few other elegant applications of dependent types in Coq.  Readers encountering such ideas for the first time often feel overwhelmed, concluding that there is some magic at work whereby Coq sometimes solves the halting problem for the programmer and sometimes does not, applying automated program understanding in a way far beyond what is found in conventional languages.  The point of this section is to cut off that sort of thinking right now!  Dependent type-checking in Coq follows just a few algorithmic rules.  Chapters 10 and 12 introduce many of those rules more formally, and the main additional rule is centered on%\index{dependent pattern matching}% _dependent pattern matching_ of the kind we met in the previous section. *)
 
-A dependent pattern match is a [match] expression where the type of the overall [match] is a function of the value and/or the type of the%\index{discriminee}% _discriminee_, the value being matched on.  In other words, the [match] type _depends_ on the discriminee.
+本節以降では、Coqにおける依存型の見事な応用例をさらにいくつか紹介します。
+はじめて見る概念に圧倒されてしまい、「従来のプログラミング言語を超えた、プログラムの内容を自動的に把握できる仕組みを使い、Coqが停止性問題をプログラマのために解決したりしてくれなかったりする魔法があるのだ」と思考停止してしまう読者もいることでしょう。
+そうした考えを一掃することが本節の目的です。
+Coqにおける依存型のチェックは、いくつかの規則に従ったアルゴリズムにすぎません。
+第10章と第12章では、これらの規則をより形式的に導入します。
+前節で紹介した%\index{依存パターンマッチ}%_[依存パターンマッチ]_も、これら追加の規則の一つです。
 
-When exactly will Coq accept a dependent pattern match as well-typed?  Some other dependently typed languages employ fancy decision procedures to determine when programs satisfy their very expressive types.  The situation in Coq is just the opposite.  Only very straightforward symbolic rules are applied.  Such a design choice has its drawbacks, as it forces programmers to do more work to convince the type checker of program validity.  However, the great advantage of a simple type checking algorithm is that its action on _invalid_ programs is easier to understand!
+(* A dependent pattern match is a [match] expression where the type of the overall [match] is a function of the value and/or the type of the%\index{discriminee}% _discriminee_, the value being matched on.  In other words, the [match] type _depends_ on the discriminee. *)
 
-We come now to the one rule of dependent pattern matching in Coq.  A general dependent pattern match assumes this form (with unnecessary parentheses included to make the syntax easier to parse):
+依存パターンマッチは、全体の型がマッチ対象の値または型（もしくはその両方）の関数であるような[match]式です。
+これはつまり、[match]の型がマッチ対象に_[依存]_するということです。
+
+(* When exactly will Coq accept a dependent pattern match as well-typed?  Some other dependently typed languages employ fancy decision procedures to determine when programs satisfy their very expressive types.  The situation in Coq is just the opposite.  Only very straightforward symbolic rules are applied.  Such a design choice has its drawbacks, as it forces programmers to do more work to convince the type checker of program validity.  However, the great advantage of a simple type checking algorithm is that its action on _invalid_ programs is easier to understand! *)
+
+依存パターンマッチがCoqにより正しく型付けされているとして受け入れられるのは、正確にはどのような場合でしょうか。
+依存型に対応した他の言語では、表現力がとても高い型を持ったプログラムに対し、手の込んだ決定手続きが採用されていることがあります。
+Coqでは、それとは正反対に、きわめて実直で記号的な規則だけが適用されます。
+この設計方針の欠点は、プログラム検証のための型チェッカーを納得させるためにプログラマが強いられる作業が増えることです。
+しかし、型チェックのアルゴリズムが単純であることには、_[不正]_なプログラムに対する挙動の理解がより簡単になるという大きな利点があります。
+
+(* We come now to the one rule of dependent pattern matching in Coq.  A general dependent pattern match assumes this form (with unnecessary parentheses included to make the syntax easier to parse): *)
+
+ここで、Coqにおける依存パターンマッチの唯一の規則を見てみましょう。
+一般的な依存パターンマッチは次のように形式化されます（シンタックスが読み取りやすいように丸括弧を付けてあります）。
+
 [[
   match E as y in (T x1 ... xn) return U with
     | C z1 ... zm => B
@@ -268,17 +292,57 @@ We come now to the one rule of dependent pattern matching in Coq.  A general dep
   end
 ]]
 
-The discriminee is a term [E], a value in some inductive type family [T], which takes [n] arguments.  An %\index{as clause}%[as] clause binds the name [y] to refer to the discriminee [E].  An %\index{in clause}%[in] clause binds an explicit name [xi] for the [i]th argument passed to [T] in the type of [E].
+(* The discriminee is a term [E], a value in some inductive type family [T], which takes [n] arguments.  An %\index{as clause}%[as] clause binds the name [y] to refer to the discriminee [E].  An %\index{in clause}%[in] clause binds an explicit name [xi] for the [i]th argument passed to [T] in the type of [E].*)
 
-We bind these new variables [y] and [xi] so that they may be referred to in [U], a type given in the %\index{return clause}%[return] clause.  The overall type of the [match] will be [U], with [E] substituted for [y], and with each [xi] substituted by the actual argument appearing in that position within [E]'s type.
+マッチ対象となるのは項[E]で、これは[n]個の引数をとる何らかの再帰的な型族[T]の値です。
+%\index{as句}%[as]句は、名前[y]にマッチ対象[E]を束縛します。
+%\index{in句}%[in]句は、[E]の型において[T]に渡される[i]番めの引数に[xi]という明示的な名前を束縛します。
 
-In general, each case of a [match] may have a pattern built up in several layers from the constructors of various inductive type families.  To keep this exposition simple, we will focus on patterns that are just single applications of inductive type constructors to lists of variables.  Coq actually compiles the more general kind of pattern matching into this more restricted kind automatically, so understanding the typing of [match] requires understanding the typing of [match]es lowered to match one constructor at a time.
+(* We bind these new variables [y] and [xi] so that they may be referred to in [U], a type given in the %\index{return clause}%[return] clause.  The overall type of the [match] will be [U], with [E] substituted for [y], and with each [xi] substituted by the actual argument appearing in that position within [E]'s type. *)
 
-The last piece of the typing rule tells how to type-check a [match] case.  A generic constructor application [C z1 ... zm] has some type [T x1' ... xn'], an application of the type family used in [E]'s type, probably with occurrences of the [zi] variables.  From here, a simple recipe determines what type we will require for the case body [B].  The type of [B] should be [U] with the following two substitutions applied: we replace [y] (the [as] clause variable) with [C z1 ... zm], and we replace each [xi] (the [in] clause variables) with [xi'].  In other words, we specialize the result type based on what we learn based on which pattern has matched the discriminee.
+新しい変数[y]と[xi]は、%\index{return句}%[return]句で与えられる型[U]の中で参照される形で束縛されます。
+[match]全体の型が[U]になります。
+その際、[y]の代わりに[E]が使われ、[E]における[xi]の出現はそれぞれ実引数で置き換えられます。
 
-This is an exhaustive description of the ways to specify how to take advantage of which pattern has matched!  No other mechanisms come into play.  For instance, there is no way to specify that the types of certain free variables should be refined based on which pattern has matched.  In the rest of the book, we will learn design patterns for achieving similar effects, where each technique leads to an encoding only in terms of [in], [as], and [return] clauses.
+(* In general, each case of a [match] may have a pattern built up in several layers from the constructors of various inductive type families.  To keep this exposition simple, we will focus on patterns that are just single applications of inductive type constructors to lists of variables.  Coq actually compiles the more general kind of pattern matching into this more restricted kind automatically, so understanding the typing of [match] requires understanding the typing of [match]es lowered to match one constructor at a time. *)
 
-A few details have been omitted above.  In Chapter 3, we learned that inductive type families may have both%\index{parameters}% _parameters_ and regular arguments.  Within an [in] clause, a parameter position must have the wildcard [_] written, instead of a variable.  (In general, Coq uses wildcard [_]'s either to indicate pattern variables that will not be mentioned again or to indicate positions where we would like type inference to infer the appropriate terms.)  Furthermore, recent Coq versions are adding more and more heuristics to infer dependent [match] annotations in certain conditions.  The general annotation inference problem is undecidable, so there will always be serious limitations on how much work these heuristics can do.  When in doubt about why a particular dependent [match] is failing to type-check, add an explicit [return] annotation!  At that point, the mechanical rule sketched in this section will provide a complete account of "what the type checker is thinking."  Be sure to avoid the common pitfall of writing a [return] annotation that does not mention any variables bound by [in] or [as]; such a [match] will never refine typing requirements based on which pattern has matched.  (One simple exception to this rule is that, when the discriminee is a variable, that same variable may be treated as if it were repeated as an [as] clause.) *)
+[match]の各ケースは、多様な種類の再帰的な型族の構成子を何層も重ねて組み立てたパターンになることがありえます。
+簡単のため、ここでは再帰的な型の構成子を変数のリストに適用しただけの単純なパターンにしぼって説明します。
+実際にはCoqは、より一般的なパターンマッチを、このような制限されたパターンへと自動的にコンパイルしてくれます。
+そのため、[match]の型付けの理解に必要なのは、一度に1つの構成子のマッチだけをする劣化版の[match]の型付けの理解です。
+
+(* The last piece of the typing rule tells how to type-check a [match] case.  A generic constructor application [C z1 ... zm] has some type [T x1' ... xn'], an application of the type family used in [E]'s type, probably with occurrences of the [zi] variables.  From here, a simple recipe determines what type we will require for the case body [B].  The type of [B] should be [U] with the following two substitutions applied: we replace [y] (the [as] clause variable) with [C z1 ... zm], and we replace each [xi] (the [in] clause variables) with [xi'].  In other words, we specialize the result type based on what we learn based on which pattern has matched the discriminee. *)
+
+型付けの規則の最後は、[match]におけるケースを型チェックする方法です。
+ケースにおける[C z1 ... zm]という構成子の一般的な適用は、ある型[T x1' ... xn']です。
+これは、変数[zi]の出現を含む、[E]の型において使われている型族の適用です。
+このことから、ケースの本体である[B]にとってどんな型が必要かが判明します。
+[B]の型は、[U]でなければならず、しかも次の2つの置き換えが適用されています。
+すなわち、[y]（[as]句の変数）を[C z1 ... zm]で置き換え、各[xi]（[in]句の変数）を[xi']で置き換えます。
+これは、マッチ対象にどのパターンがマッチしたかという情報をもとにして、結果の型を特定化しているとも言えます。
+
+(* This is an exhaustive description of the ways to specify how to take advantage of which pattern has matched!  No other mechanisms come into play.  For instance, there is no way to specify that the types of certain free variables should be refined based on which pattern has matched.  In the rest of the book, we will learn design patterns for achieving similar effects, where each technique leads to an encoding only in terms of [in], [as], and [return] clauses. *)
+
+「どのパターンがマッチしたかという情報をどうやって利用するか」を指定する方法の説明はこれで全部です。
+ほかに関与する仕組みは何もありません。
+たとえば、「マッチしたパターンに応じて特定の自由変数の型を詳細化する」といったことを指定する方法はありません。
+本章の後半では、同じような効果を得るためのデザインパターンを学んでいきますが、いずれの技法でも結局は[in]句、[as]句、[return]句を使います。
+
+(* A few details have been omitted above.  In Chapter 3, we learned that inductive type families may have both%\index{parameters}% _parameters_ and regular arguments.  Within an [in] clause, a parameter position must have the wildcard [_] written, instead of a variable.  (In general, Coq uses wildcard [_]'s either to indicate pattern variables that will not be mentioned again or to indicate positions where we would like type inference to infer the appropriate terms.)  Furthermore, recent Coq versions are adding more and more heuristics to infer dependent [match] annotations in certain conditions.  The general annotation inference problem is undecidable, so there will always be serious limitations on how much work these heuristics can do.  When in doubt about why a particular dependent [match] is failing to type-check, add an explicit [return] annotation!  At that point, the mechanical rule sketched in this section will provide a complete account of "what the type checker is thinking."  Be sure to avoid the common pitfall of writing a [return] annotation that does not mention any variables bound by [in] or [as]; such a [match] will never refine typing requirements based on which pattern has matched.  (One simple exception to this rule is that, when the discriminee is a variable, that same variable may be treated as if it were repeated as an [as] clause.) *)
+
+上記の説明では割愛した詳細な話はいくつかあります。
+第3章では、帰納的な型族が%\index{パラメータ}%_パラメータ_と通常の引数を両方とも持つ場合があることを学びました。
+[in]句の中では、パラメータの場所には変数ではなくワイルドカード「[_]」を置く必要があります
+（一般にCoqでワイルドカード「[_]」を使うのは、あとで使い回さないパターン変数を示す場合と、型推論で適切な項を導出してほしい場所を示す場合です）。
+さらに、Coqにはバージョンが上がるほど多くのヒューリスティックスが追加されているので、依存[match]においてアノテーションを導出できるような状況は増えています。
+とはいえ、アノテーションの導出は一般には決定不能な問題なので、ヒューリスティックスでどこまで可能かには常に深刻な限界があります。
+ある依存[match]が型チェックを通らない理由に疑問があったら[return]アノテーションを追加してみてください。
+その意味では、本節で概説した機械的な規則は「型チェッカーがどう考えるか」に関する完全な説明です。
+[return]アノテーションを書くときは、[in]や[as]によって束縛された変数に言及しないという、よくある落とし穴に注意してください。
+そのように書かれた[match]では、どのパターンがマッチしたかという情報をもとにした型付けに対する要求の詳細化が絶対にできません
+（この規則には例外もあって、マッチ対象が変数の場合には、その同じ変数が[as]句として繰り返されているものとみなされます）。
+
+*)
 
 
 (** * A Tagless Interpreter *)
